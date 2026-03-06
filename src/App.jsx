@@ -42,18 +42,18 @@ const PILLARS = [
 ];
 
 const RATING = (s) => {
-  if (s >= 4.5) return { label: "STRONG BUY",  color: "#00e5a0", bg: "rgba(0,229,160,0.08)" };
-  if (s >= 4.0) return { label: "BUY",          color: "#4ade80", bg: "rgba(74,222,128,0.08)" };
-  if (s >= 3.0) return { label: "NEUTRAL",      color: "#f5c842", bg: "rgba(245,200,66,0.08)" };
-  if (s >= 2.0) return { label: "SELL",         color: "#fb923c", bg: "rgba(251,146,60,0.08)" };
+  if (s > 4.0) return { label: "STRONG BUY",  color: "#00e5a0", bg: "rgba(0,229,160,0.08)" };
+  if (s > 3.0) return { label: "BUY",          color: "#4ade80", bg: "rgba(74,222,128,0.08)" };
+  if (s > 2.0) return { label: "NEUTRAL",      color: "#f5c842", bg: "rgba(245,200,66,0.08)" };
+  if (s > 1.0) return { label: "SELL",         color: "#fb923c", bg: "rgba(251,146,60,0.08)" };
   return               { label: "STRONG SELL",  color: "#f87171", bg: "rgba(248,113,113,0.08)" };
 };
-const SC = (s) => s>=4.5?"#00e5a0":s>=4.0?"#4ade80":s>=3.0?"#f5c842":s>=2.0?"#fb923c":"#f87171";
+const SC = (s) => s>4.0?"#00e5a0":s>3.0?"#4ade80":s>2.0?"#f5c842":s>1.0?"#fb923c":"#f87171";
 
 const DISCLAIMER = "This website and all content published by Eternal Edge is for educational and informational purposes only. Nothing on this site constitutes financial advice, investment advice, trading advice, or any other form of advice. All research, scores, and analysis reflect personal opinions only. Eternal Edge is not a registered investment advisor, broker-dealer, or financial institution. We are not liable for any investment decisions made based on content found on this site. Past performance does not guarantee future results. Always conduct your own due diligence and consult a licensed financial advisor before buying or selling any securities.";
 
 const SOCIALS = [
-  { platform: "X (Twitter)", handle: "@EternalEdgeResearch", url: "https://twitter.com/EternalEdgeResearch", icon: "𝕏", color: "#e7e7e7", desc: "Daily market commentary, new report alerts & contrarian trade ideas." },
+  { platform: "X (Twitter)", handle: "@EternalEdgeNews", url: "https://twitter.com/EternalEdgeNews", icon: "𝕏", color: "#e7e7e7", desc: "Daily market commentary, new report alerts & contrarian trade ideas." },
   { platform: "Instagram",   handle: "@eternaledge.research", url: "https://instagram.com/eternaledge.research", icon: "📸", color: "#e1306c", desc: "Visual stock breakdowns, charts & behind-the-scenes research process." },
   { platform: "YouTube",     handle: "Eternal Edge Research", url: "https://youtube.com/@EternalEdgeResearch", icon: "▶", color: "#ff0000", desc: "Deep dive video reports, market analysis & long-form investing education." },
   { platform: "TikTok",      handle: "@eternaledgeresearch", url: "https://tiktok.com/@eternaledgeresearch", icon: "♪", color: "#69c9d0", desc: "Quick market insights, stock picks & educational investing content." },
@@ -206,8 +206,14 @@ TECHNICAL PILLAR — must include:
 - Elliott Wave position with explanation of what it means for the stock
 - ma50Value and ma200Value as separate fields (numeric, e.g. 185.40)
 
-PILLARS & WEIGHTS: Technical 20%, Fundamental 25%, Metrics 20%, Valuation 20%, Sentiment 10%, Geopolitical/Macro 5%
-SCORING: 1.0–1.9 Strong Sell | 2.0–2.9 Sell | 3.0–3.9 Neutral | 4.0–4.4 Buy | 4.5–5.0 Strong Buy
+SCORING SCALE (applies to ALL pillars and overall score):
+- 4.1–5.0 = Strong Buy
+- 3.1–4.0 = Buy  
+- 2.1–3.0 = Neutral
+- 1.1–2.0 = Sell
+- 0–1.0   = Strong Sell
+
+CPI DATA: Always pull upcoming CPI release dates from https://www.bls.gov/cpi/ — use the official BLS schedule for the catalyst calendar.
 
 Return ONLY valid JSON, no markdown fences, no extra text:
 {"ticker":"","companyName":"","sector":"","reportDate":"${today}","currentPrice":0,"nextEarnings":"YYYY-MM-DD","pillars":{"technical":{"score":0,"summary":"","bullets":[],"elliottWave":"Primary Wave X","elliottWaveSentiment":"","ma50Value":0,"ma200Value":0},"fundamental":{"score":0,"summary":"","bullets":[]},"metrics":{"score":0,"summary":"","bullets":[],"ownershipSignal":"Bullish|Neutral|Bearish","ownershipSummary":"","keyMetrics":{}},"valuation":{"score":0,"summary":"","bullets":[],"fairValue":0,"bearCase":0,"baseCase":0,"bullCase":0,"upside1Y":0,"downside1Y":0,"model":""},"sentiment":{"score":0,"summary":"","bullets":[]},"geopolitical":{"score":0,"summary":"","bullets":[],"futuresSummary":""}},"overallScore":0,"keyRisks":[],"keyCatalysts":[],"conclusionSummary":"","catalystCalendar":[{"date":"YYYY-MM-DD","event":"","type":"earnings|macro|catalyst"}]}`;
@@ -793,11 +799,11 @@ function ReportPage({ report, onBack }) {
 function GradingScalePage() {
   const [open, setOpen] = useState(null);
   const SCALE = [
-    {range:"4.5 – 5.0",label:"STRONG BUY", color:"#00e5a0",width:"100%",desc:"Exceptional opportunity — strong conviction across multiple pillars"},
-    {range:"4.0 – 4.4",label:"BUY",        color:"#4ade80",width:"82%", desc:"Favorable setup — more bullish signals than concerns"},
-    {range:"3.0 – 3.9",label:"NEUTRAL",    color:"#f5c842",width:"60%", desc:"Mixed picture — hold existing positions, not a clear entry"},
-    {range:"2.0 – 2.9",label:"SELL",       color:"#fb923c",width:"38%", desc:"Bearish signals outweigh positives — consider reducing exposure"},
-    {range:"1.0 – 1.9",label:"STRONG SELL",color:"#f87171",width:"20%", desc:"Multiple red flags — high-risk situation for long-term holders"},
+    {range:"4.1 – 5.0",label:"STRONG BUY", color:"#00e5a0",width:"100%",desc:"Exceptional opportunity — strong conviction across multiple pillars"},
+    {range:"3.1 – 4.0",label:"BUY",        color:"#4ade80",width:"80%", desc:"Favorable setup — more bullish signals than concerns"},
+    {range:"2.1 – 3.0",label:"NEUTRAL",    color:"#f5c842",width:"60%", desc:"Mixed picture — hold existing positions, not a clear entry"},
+    {range:"1.1 – 2.0",label:"SELL",       color:"#fb923c",width:"38%", desc:"Bearish signals outweigh positives — consider reducing exposure"},
+    {range:"0 – 1.0",  label:"STRONG SELL",color:"#f87171",width:"18%", desc:"Multiple red flags — high-risk situation for long-term holders"},
   ];
   return (
     <div className="gs-page">
