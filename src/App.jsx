@@ -54,9 +54,9 @@ const DISCLAIMER = "This website and all content published by Eternal Edge is fo
 
 const SOCIALS = [
   { platform: "X (Twitter)", handle: "@EternalEdgeNews", url: "https://twitter.com/EternalEdgeNews", icon: "𝕏", color: "#e7e7e7", desc: "Daily market commentary, new report alerts & contrarian trade ideas." },
-  { platform: "Instagram",   handle: "@eternaledge.research", url: "https://instagram.com/eternaledge.research", icon: "📸", color: "#e1306c", desc: "Visual stock breakdowns, charts & behind-the-scenes research process." },
-  { platform: "YouTube",     handle: "Eternal Edge Research", url: "https://youtube.com/@EternalEdgeResearch", icon: "▶", color: "#ff0000", desc: "Deep dive video reports, market analysis & long-form investing education." },
-  { platform: "TikTok",      handle: "@eternaledgeresearch", url: "https://tiktok.com/@eternaledgeresearch", icon: "♪", color: "#69c9d0", desc: "Quick market insights, stock picks & educational investing content." },
+  { platform: "Instagram",   handle: "Coming Soon", url: null, icon: "📸", color: "#e1306c", desc: "Visual stock breakdowns, charts & behind-the-scenes research process." },
+  { platform: "YouTube",     handle: "Coming Soon", url: null, icon: "▶", color: "#ff0000", desc: "Deep dive video reports, market analysis & long-form investing education." },
+  { platform: "TikTok",      handle: "Coming Soon", url: null, icon: "♪", color: "#69c9d0", desc: "Quick market insights, stock picks & educational investing content." },
 ];
 
 function generatePriceHistory(low, high, current, realMa50=null, realMa200=null) {
@@ -683,12 +683,7 @@ function PriceChart({ ticker }) {
   return (
     <div className="chart-card">
       <div className="chart-hdr">
-        <div><div className="chart-title">1-YEAR PRICE CHART — ${ticker}</div><div style={{fontSize:10,color:"var(--dim)",marginTop:3,letterSpacing:"0.04em"}}>Daily close · 50-Day MA · 200-Day MA</div></div>
-        <div className="chart-legend">
-          <div className="leg"><div className="leg-line" style={{background:"#c9a84c"}}/> Price</div>
-          <div className="leg"><div className="leg-line" style={{background:"#60a5fa",borderTop:"2px dashed #60a5fa",height:0}}/> 50D MA</div>
-          <div className="leg"><div className="leg-line" style={{background:"#f97316",borderTop:"2px dashed #f97316",height:0}}/> 200D MA</div>
-        </div>
+        <div><div className="chart-title">1-YEAR PRICE CHART — ${ticker}</div><div style={{fontSize:10,color:"var(--dim)",marginTop:3,letterSpacing:"0.04em"}}>Daily close price</div></div>
       </div>
       <ResponsiveContainer width="100%" height={210}>
         <AreaChart data={chartData} margin={{top:4,right:2,bottom:0,left:0}}>
@@ -707,8 +702,6 @@ function PriceChart({ ticker }) {
             labelStyle={{color:"#555"}} itemStyle={{color:"#f0ead6"}}
             formatter={(v,n)=>[`$${v.toFixed(2)}`,n==="price"?"Price":n==="ma50"?"50D MA":"200D MA"]}/>
           <Area type="monotone" dataKey="price" stroke="#c9a84c" strokeWidth={1.5} fill="url(#pg)" dot={false}/>
-          <Line type="monotone" dataKey="ma50"  stroke="#60a5fa" strokeWidth={1.5} dot={false} strokeDasharray="5 3"/>
-          <Line type="monotone" dataKey="ma200" stroke="#f97316" strokeWidth={1.5} dot={false} strokeDasharray="5 3"/>
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -1102,17 +1095,29 @@ function SocialPage() {
 
       <div className="soc-grid">
         {SOCIALS.map((s,i)=>(
-          <a className="soc-card" key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",color:"inherit"}}>
-            <div className="soc-icon-wrap" style={{background:`${s.color}14`,border:`1px solid ${s.color}22`}}>
-              <span style={{color:s.color,fontWeight:700}}>{s.icon}</span>
-            </div>
-            <div style={{flex:1}}>
-              <div className="soc-platform">{s.platform}</div>
-              <div className="soc-handle" style={{color:s.color}}>{s.handle}</div>
-              <div className="soc-desc">{s.desc}</div>
-            </div>
-            <button className="soc-follow-btn">FOLLOW →</button>
-          </a>
+          s.url
+            ? <a className="soc-card" key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",color:"inherit"}}>
+                <div className="soc-icon-wrap" style={{background:`${s.color}14`,border:`1px solid ${s.color}22`}}>
+                  <span style={{color:s.color,fontWeight:700}}>{s.icon}</span>
+                </div>
+                <div style={{flex:1}}>
+                  <div className="soc-platform">{s.platform}</div>
+                  <div className="soc-handle" style={{color:s.color}}>{s.handle}</div>
+                  <div className="soc-desc">{s.desc}</div>
+                </div>
+                <button className="soc-follow-btn">FOLLOW →</button>
+              </a>
+            : <div className="soc-card" key={i} style={{opacity:0.5,cursor:"default"}}>
+                <div className="soc-icon-wrap" style={{background:`${s.color}14`,border:`1px solid ${s.color}22`}}>
+                  <span style={{color:s.color,fontWeight:700}}>{s.icon}</span>
+                </div>
+                <div style={{flex:1}}>
+                  <div className="soc-platform">{s.platform}</div>
+                  <div className="soc-handle" style={{color:"var(--muted)",fontStyle:"italic"}}>Coming Soon</div>
+                  <div className="soc-desc">{s.desc}</div>
+                </div>
+                <div style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.1em",border:"1px solid var(--border)",borderRadius:6,padding:"4px 10px"}}>SOON</div>
+              </div>
         ))}
       </div>
 
