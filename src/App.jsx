@@ -1231,32 +1231,7 @@ export default function App() {
         </div>
       ) : sheetError ? (
         <div className="error-msg"><strong>⚠ Could not load reports.</strong><br/><br/>{sheetError}</div>
-      ) : (<>
-        <div className="nav-logo" onClick={()=>setPage("home")}>
-          <div className="cross-mark"/>
-          <div><div className="nav-brand">ETERNAL <span>EDGE</span></div><div className="nav-tagline">Stock Market Research</div></div>
-        </div>
-        <div className="nav-links">
-          {NAVLINKS.map(l=>(<button key={l.id} className={`nav-link ${(page===l.id||(page==="report"&&l.id==="home"))?"active":""}`} onClick={()=>setPage(l.id)}>{l.label}</button>))}
-        </div>
-        <div className="nav-search-wrap">
-          <div className="nav-search">
-            <span style={{color:"var(--muted)",fontSize:11}}>⌕</span>
-            <input placeholder="Search ticker..." value={navQ} onChange={e=>handleNavQ(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&handleSearch(navQ)}/>
-          </div>
-          {navResults.length>0 && (
-            <div className="search-dropdown">
-              {navResults.map(r=>(
-                <div className="sd-item" key={r.ticker} onClick={()=>goReport(r.ticker)}>
-                  <div><div className="sd-ticker" style={{color:RATING(r.overallScore).color}}>${r.ticker}</div><div className="sd-name">{r.companyName}</div></div>
-                  <div className="sd-score" style={{color:RATING(r.overallScore).color}}>{r.overallScore.toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </nav>
+      ) : <>
 
       {page==="home"      && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
       {page==="dashboard" && <SummaryDashboard reports={reports} onSelect={goReport}/>}
@@ -1279,7 +1254,7 @@ export default function App() {
           <button className="back-btn" style={{margin:"0 auto",display:"flex"}} onClick={()=>setPage("home")}>← Back to Reports</button>
         </div>
       )}
-      </>)}
+      </>}
 
       {/* FOOTER */}
       <footer className="footer">
