@@ -106,59 +106,68 @@ function generatePriceHistory(low, high, current, realMa50=null, realMa200=null)
   return data;
 }
 
-const MOCK_REPORTS = {
-  AAPL: {
-    ticker:"AAPL", companyName:"Apple Inc.", sector:"Technology",
-    reportDate:"2026-03-05", currentPrice:227.50, nextEarnings:"2026-05-07",
-    pillars:{
-      technical:{ score:3.8, summary:"Trading above 200-day MA with slowing momentum. Elliott Wave suggests consolidation before next leg.", bullets:["Price sits above 200-day MA ($198) — long-term uptrend intact","50-day MA ($220) acting as near-term support","RSI at 54 — neutral zone, not overbought","Elliott Wave: Primary Wave 4 — minor consolidation before a potential final Wave 5 push"], elliottWave:"Primary Wave 4", elliottWaveSentiment:"Slightly Bullish", ma50Value:220, ma200Value:198 },
-      fundamental:{ score:4.6, summary:"Best-in-class margins with a dominant ecosystem moat.", bullets:["Revenue grew 6% YoY to $391B — steady compounder","Net margins of 26% — among the highest in Big Tech","Services segment growing 13% YoY — expanding recurring revenue","iPhone ecosystem lock-in creates one of the widest moats in business"] },
-      metrics:{ score:4.1, summary:"Premium valuation justified by quality. Strong institutional backing and active buyback program signal management confidence.", bullets:["P/E of 31x — above market average but historically justified","Institutional ownership at 61% — broadly held by major funds","Active $110B share buyback program — strong signal of management confidence","Insider activity: neutral — no significant recent buys or sells"], ownershipSignal:"Bullish", ownershipSummary:"61% institutional ownership + active $110B buyback program = strong confidence signal",
-        keyMetrics:{"Market Cap":"$3.4T","P/E Ratio":"31x","P/S Ratio":"8.7x","Beta":"1.2","52W High":"$237","52W Low":"$164","Short Interest":"0.8%","FCF Yield":"3.4%","ROE":"147%","Inst. Ownership":"61%","Buyback Program":"$110B Active","Insider Activity":"Neutral"} },
-      valuation:{ score:3.5, summary:"Fairly valued to slightly rich — upside exists but limited near term.", bullets:["Fair value estimated at $210 using blended P/E + DCF model","Current price of $227 implies ~8% premium to fair value","Bull case ($290) requires Services re-rate higher on AI integration","Bear case ($165) assumes margin compression + China headwinds"],
-        fairValue:210, bearCase:165, baseCase:220, bullCase:290, model:"Blended P/E + DCF", upside1Y:27.5, downside1Y:27.5 },
-      sentiment:{ score:4.2, summary:"Retail investors broadly bullish; strong brand loyalty on X.", bullets:["X/Twitter sentiment strongly positive — #AAPL trending favorably","Reddit r/investing shows consistent long-term holding mentality","Analyst consensus: 38 Buy, 8 Hold, 2 Sell","No major negative news cycles — Apple Intelligence narrative building"] },
-      geopolitical:{ score:3.4, summary:"China risk and tariff headwinds offset by domestic strength. Futures mixed.", bullets:["~18% of revenue from China — trade tensions remain a key risk","S&P 500 & Nasdaq futures flat-to-slightly-negative — cautious macro backdrop","Fed rate environment stabilizing — positive for growth multiples","CNN Fear & Greed Index: 38 (Fear) — contrarian buying signal for long-term investors"], futuresSummary:"Futures flat-to-negative — mild macro headwind" },
-    },
-    overallScore:4.02,
-    keyRisks:["China revenue exposure + escalating trade tariffs","iPhone upgrade cycle slowdown in saturated markets","Regulatory antitrust pressure on App Store globally"],
-    keyCatalysts:["Apple Intelligence AI rollout driving upgrade supercycle","Services segment approaching $100B annual run rate","Potential India manufacturing expansion reducing China dependency"],
-    conclusionSummary:"Apple remains one of the highest-quality businesses on the planet. At current prices it's fairly valued — not screaming cheap — but for long-term holders the compounding power of its ecosystem, Services growth, and capital return program make it a core holding. The active $110B buyback and 61% institutional ownership underscore management and smart money conviction. Patient buyers may find better entry points on broader market pullbacks.",
-    catalystCalendar:[
-      {date:"2026-03-19",event:"FOMC Rate Decision",type:"macro"},
-      {date:"2026-04-10",event:"CPI Print — March 2026 Data",type:"macro"},
-      {date:"2026-04-29",event:"Core PCE Inflation Data",type:"macro"},
-      {date:"2026-05-07",event:"AAPL Q2 FY2026 Earnings",type:"earnings"},
-      {date:"2026-06-08",event:"Apple WWDC 2026 — AI & Software Announcements",type:"catalyst"},
-    ],
-    priceHistory: generatePriceHistory(164,237,227.50,220,198),
-  },
-  NVDA: {
-    ticker:"NVDA", companyName:"NVIDIA Corporation", sector:"Semiconductors",
-    reportDate:"2026-03-05", currentPrice:138.85, nextEarnings:"2026-05-28",
-    pillars:{
-      technical:{ score:4.2, summary:"Recovering above key MAs after correction. Elliott Wave analysis points to a high-conviction entry zone.", bullets:["Price recovered above 50-day MA ($131) after February correction","200-day MA at $115 — significant long-term support floor","RSI at 59 — room to run without being overbought","Elliott Wave: Primary Wave 2 — this pullback is the setup before the most powerful Wave 3 leg"], elliottWave:"Primary Wave 2", elliottWaveSentiment:"Very Bullish — Best Entry Before Wave 3", ma50Value:131, ma200Value:115 },
-      fundamental:{ score:4.9, summary:"Generational growth story — AI infrastructure backbone.", bullets:["Revenue grew 122% YoY — fastest growing mega-cap in history","Data Center revenue of $35B per quarter — still accelerating","Net margins of 55% — extraordinarily rare at this scale","Blackwell GPU architecture creates 18+ month competitive lead"] },
-      metrics:{ score:4.3, summary:"Metrics bullish across the board. Institutional conviction is exceptionally high and buybacks signal management confidence even at elevated prices.", bullets:["Forward P/E of 28x — reasonable given 3-year growth runway","Institutional ownership at 67% — near-peak smart money accumulation","Active $25B share buyback — management buying their own stock aggressively","Insider activity: light selling by executives post-vest — normal, not a warning sign"], ownershipSignal:"Bullish", ownershipSummary:"67% institutional ownership + $25B active buyback = extremely high conviction from smart money",
-        keyMetrics:{"Market Cap":"$3.4T","P/E (Fwd)":"28x","P/S Ratio":"19x","Beta":"1.7","52W High":"$153","52W Low":"$76","Short Interest":"1.2%","FCF Yield":"2.1%","ROE":"123%","Inst. Ownership":"67%","Buyback Program":"$25B Active","Insider Activity":"Light Selling (normal)"} },
-      valuation:{ score:4.0, summary:"Compelling risk-reward — trades at discount vs growth potential.", bullets:["Fair value $175 on 30x forward earnings FY2026 estimates","At $139 the stock trades at a meaningful discount to intrinsic value","Bull case $280 if hyperscaler capex remains elevated through 2026","Bear case $95 on demand air pocket or competitive disruption"],
-        fairValue:175, bearCase:95, baseCase:175, bullCase:280, model:"Forward P/E on FY2026", upside1Y:101.6, downside1Y:31.6 },
-      sentiment:{ score:4.5, summary:"Overwhelming retail and institutional enthusiasm — the AI poster child.", bullets:["NVDA dominates X/Twitter AI and investing conversations daily","Reddit WSB and r/investing both heavily long biased","Analyst consensus: 53 Buy, 5 Hold, 0 Sell — near-unanimous","Jensen Huang keynotes treated like Apple events — cultural moment"] },
-      geopolitical:{ score:3.2, summary:"Export restrictions are the #1 risk — priced in but real. Futures mixed.", bullets:["US chip export controls limit Blackwell sales to China","Nasdaq futures slightly negative today — short-term macro pressure","CHIPS Act tailwinds support domestic manufacturing buildout","CNN Fear & Greed Index: 38 (Fear) — historically great AI entry signal"], futuresSummary:"Nasdaq futures slightly down — minor short-term headwind" },
-    },
-    overallScore:4.31,
-    keyRisks:["US chip export restrictions expanding to more countries","Hyperscalers (Microsoft, Google, Amazon) developing in-house chips","Single-customer concentration risk in Data Center segment"],
-    keyCatalysts:["Blackwell GB200 NVL72 rack systems ramping in H1 2026","Sovereign AI buildout — every country wants its own AI infrastructure","CUDA ecosystem moat deepening — 4M+ developers locked in"],
-    conclusionSummary:"NVIDIA is the defining company of the AI era. The fundamentals are extraordinary and the competitive moat is wider than most appreciate. Elliott Wave analysis places this in a Primary Wave 2 pullback — historically the single best entry point before the most explosive leg up. The 67% institutional ownership and active $25B buyback confirm that smart money sees exactly what we see. This is precisely the type of setup Eternal Edge was built to identify.",
-    catalystCalendar:[
-      {date:"2026-03-17",event:"GTC 2026 — Jensen Huang Keynote",type:"catalyst"},
-      {date:"2026-03-19",event:"FOMC Rate Decision",type:"macro"},
-      {date:"2026-04-10",event:"CPI Print — March 2026 Data",type:"macro"},
-      {date:"2026-05-28",event:"NVDA Q1 FY2027 Earnings",type:"earnings"},
-    ],
-    priceHistory: generatePriceHistory(76,153,138.85,131,115),
-  },
-};
+// ── GOOGLE SHEETS DATA SOURCE ─────────────────────────────────────────────────
+// Sheet URL stored as env variable — never exposed in public code
+const SHEET_ID = "1lqs75vw2o9oBo8x_0ojWvvE483aU-Zi6zhu6sEXnkxk";
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Reports`;
+
+function parseSheetRow(row) {
+  try {
+    const c = row.c;
+    const s = i => c[i]?.v ?? "";
+    const n = i => parseFloat(c[i]?.v) || 0;
+    const arr = i => { try { return JSON.parse(c[i]?.v || "[]"); } catch { return (c[i]?.v||"").split("|").map(x=>x.trim()).filter(Boolean); }};
+
+    const ticker = s(0).toUpperCase();
+    if (!ticker) return null;
+
+    const lo = n(37) || n(4)*0.7;
+    const hi = n(38) || n(4)*1.3;
+    const ma50 = n(39) || null;
+    const ma200 = n(40) || null;
+
+    return {
+      ticker,
+      companyName: s(1),
+      sector: s(2),
+      reportDate: s(3),
+      currentPrice: n(4),
+      nextEarnings: s(5),
+      overallScore: n(6),
+      pillars: {
+        technical: { score:n(7), summary:s(8), bullets:arr(9), elliottWave:s(10), elliottWaveSentiment:s(11), ma50Value:ma50, ma200Value:ma200 },
+        fundamental: { score:n(12), summary:s(13), bullets:arr(14) },
+        metrics: { score:n(15), summary:s(16), bullets:arr(17), ownershipSignal:s(18), ownershipSummary:s(19),
+          keyMetrics: (() => { try { return JSON.parse(s(20)||"{}"); } catch { return {}; }})() },
+        valuation: { score:n(21), summary:s(22), bullets:arr(23), fairValue:n(24), bearCase:n(25), baseCase:n(26), bullCase:n(27), upside1Y:n(28), downside1Y:n(29), model:s(30) },
+        sentiment: { score:n(31), summary:s(32), bullets:arr(33) },
+        geopolitical: { score:n(34), summary:s(35), bullets:arr(36), futuresSummary:s(41) },
+      },
+      keyRisks: arr(42),
+      keyCatalysts: arr(43),
+      conclusionSummary: s(44),
+      catalystCalendar: (() => { try { return JSON.parse(s(45)||"[]"); } catch { return []; }})(),
+      priceHistory: generatePriceHistory(lo, hi, n(4), ma50, ma200),
+    };
+  } catch(e) {
+    console.error("Row parse error:", e);
+    return null;
+  }
+}
+
+async function fetchSheetReports() {
+  const res = await fetch(SHEET_URL);
+  const text = await res.text();
+  // Google wraps response in /*O_o*/google.visualization.Query.setResponse({...})
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+  const rows = json.table.rows.slice(1); // skip header row
+  const reports = {};
+  rows.forEach(row => {
+    const r = parseSheetRow(row);
+    if (r && r.ticker) reports[r.ticker] = r;
+  });
+  return reports;
+}
 
 // ── API ───────────────────────────────────────────────────────────────────────
 async function fetchReport(ticker, reportDate) {
@@ -1136,14 +1145,22 @@ function HomePage({ reports, onSelect, onSearch }) {
 
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [reports, setReports] = useState(MOCK_REPORTS);
+  const [reports, setReports] = useState({});
+  const [sheetLoading, setSheetLoading] = useState(true);
+  const [sheetError, setSheetError] = useState(null);
   const [page, setPage] = useState("home");
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [navQ, setNavQ] = useState("");
   const [navResults, setNavResults] = useState([]);
-  const [showDisclaimer, setShowDisclaimer] = useState(true);
+
+  // Load published reports from Google Sheets on startup
+  useEffect(() => {
+    fetchSheetReports()
+      .then(data => { setReports(data); setSheetLoading(false); })
+      .catch(e => { console.error("Sheet load error:", e); setSheetError("Could not load reports."); setSheetLoading(false); });
+  }, []);
 
   const goReport = ticker => { setSelected(ticker); setPage("report"); setNavQ(""); setNavResults([]); };
 
@@ -1205,6 +1222,42 @@ export default function App() {
         </div>
       </nav>
 
+      {sheetLoading ? (
+        <div className="loading-screen">
+          <div className="cross-mark" style={{width:32,height:32,marginBottom:8}}/>
+          <div className="spinner"/>
+          <div className="loading-msg">LOADING REPORTS</div>
+          <div className="loading-sub">Fetching latest research...</div>
+        </div>
+      ) : sheetError ? (
+        <div className="error-msg"><strong>⚠ Could not load reports.</strong><br/><br/>{sheetError}</div>
+      ) : (<>
+        <div className="nav-logo" onClick={()=>setPage("home")}>
+          <div className="cross-mark"/>
+          <div><div className="nav-brand">ETERNAL <span>EDGE</span></div><div className="nav-tagline">Stock Market Research</div></div>
+        </div>
+        <div className="nav-links">
+          {NAVLINKS.map(l=>(<button key={l.id} className={`nav-link ${(page===l.id||(page==="report"&&l.id==="home"))?"active":""}`} onClick={()=>setPage(l.id)}>{l.label}</button>))}
+        </div>
+        <div className="nav-search-wrap">
+          <div className="nav-search">
+            <span style={{color:"var(--muted)",fontSize:11}}>⌕</span>
+            <input placeholder="Search ticker..." value={navQ} onChange={e=>handleNavQ(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&handleSearch(navQ)}/>
+          </div>
+          {navResults.length>0 && (
+            <div className="search-dropdown">
+              {navResults.map(r=>(
+                <div className="sd-item" key={r.ticker} onClick={()=>goReport(r.ticker)}>
+                  <div><div className="sd-ticker" style={{color:RATING(r.overallScore).color}}>${r.ticker}</div><div className="sd-name">{r.companyName}</div></div>
+                  <div className="sd-score" style={{color:RATING(r.overallScore).color}}>{r.overallScore.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </nav>
+
       {page==="home"      && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
       {page==="dashboard" && <SummaryDashboard reports={reports} onSelect={goReport}/>}
       {page==="report"    && selected && reports[selected] && <ReportPage report={reports[selected]} onBack={()=>setPage("home")}/>}
@@ -1226,6 +1279,7 @@ export default function App() {
           <button className="back-btn" style={{margin:"0 auto",display:"flex"}} onClick={()=>setPage("home")}>← Back to Reports</button>
         </div>
       )}
+      </>)}
 
       {/* FOOTER */}
       <footer className="footer">
@@ -1237,7 +1291,7 @@ export default function App() {
           <strong style={{color:"var(--muted)"}}>NOT FINANCIAL ADVICE:</strong> {DISCLAIMER}
         </div>
         <div className="footer-right">
-          <div style={{color:"var(--dim)"}}>© 2025 Eternal Edge Research</div>
+          <div style={{color:"var(--dim)"}}>© 2026 Eternal Edge Research</div>
           <div style={{marginTop:4,color:"var(--dim)"}}>All research is educational only.</div>
         </div>
       </footer>
