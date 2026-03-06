@@ -59,106 +59,164 @@ const SOCIALS = [
   { platform: "TikTok",      handle: "@eternaledgeresearch", url: "https://tiktok.com/@eternaledgeresearch", icon: "♪", color: "#69c9d0", desc: "Quick market insights, stock picks & educational investing content." },
 ];
 
-function generatePriceHistory(low, high, current) {
+function generatePriceHistory(low, high, current, realMa50=null, realMa200=null) {
   const points = 252;
   const data = [];
   let price = low + (high - low) * 0.3;
+  // Generate start date as ~1 year ago
+  const startDate = new Date("2026-03-05");
+  startDate.setFullYear(startDate.getFullYear() - 1);
   for (let i = 0; i < points; i++) {
     const trend = (current - price) / (points - i) * 1.2;
     price = Math.max(low*0.95, Math.min(high*1.05, price + trend + (Math.random()-0.48)*(high-low)*0.025));
-    const d = new Date(2024, 2, 1); d.setDate(d.getDate()+i);
+    const d = new Date(startDate); d.setDate(d.getDate()+i);
     data.push({ date: d.toISOString().split("T")[0], price: parseFloat(price.toFixed(2)) });
   }
   data[data.length-1].price = current;
+  // Compute simulated MAs from price history
   data.forEach((d,i) => {
-    if (i>=49)  d.ma50  = parseFloat((data.slice(i-49,i+1).reduce((s,x)=>s+x.price,0)/50).toFixed(2));
-    if (i>=199) d.ma200 = parseFloat((data.slice(i-199,i+1).reduce((s,x)=>s+x.price,0)/200).toFixed(2));
+    if (i>=49)  d.ma50sim  = parseFloat((data.slice(i-49,i+1).reduce((s,x)=>s+x.price,0)/50).toFixed(2));
+    if (i>=199) d.ma200sim = parseFloat((data.slice(i-199,i+1).reduce((s,x)=>s+x.price,0)/200).toFixed(2));
   });
+  // If real MA values provided, anchor the last point and interpolate backwards
+  if (realMa50) {
+    const lastSim50 = data[points-1].ma50sim || realMa50;
+    const diff50 = realMa50 - lastSim50;
+    data.forEach((d,i) => {
+      if (i>=49) {
+        const ratio = (i - 49) / (points - 1 - 49);
+        d.ma50 = parseFloat((d.ma50sim + diff50 * ratio).toFixed(2));
+      }
+    });
+  } else {
+    data.forEach(d => { if (d.ma50sim) d.ma50 = d.ma50sim; });
+  }
+  if (realMa200) {
+    const lastSim200 = data[points-1].ma200sim || realMa200;
+    const diff200 = realMa200 - lastSim200;
+    data.forEach((d,i) => {
+      if (i>=199) {
+        const ratio = (i - 199) / (points - 1 - 199);
+        d.ma200 = parseFloat((d.ma200sim + diff200 * ratio).toFixed(2));
+      }
+    });
+  } else {
+    data.forEach(d => { if (d.ma200sim) d.ma200 = d.ma200sim; });
+  }
   return data;
 }
 
 const MOCK_REPORTS = {
   AAPL: {
     ticker:"AAPL", companyName:"Apple Inc.", sector:"Technology",
-    reportDate:"2025-02-28", currentPrice:227.50, nextEarnings:"2025-05-01",
+    reportDate:"2026-03-05", currentPrice:227.50, nextEarnings:"2026-05-07",
     pillars:{
-      technical:{ score:3.8, summary:"Trading above 200-day MA with slowing momentum.", bullets:["Price sits above 200-day MA ($198) — long-term uptrend intact","50-day MA ($220) acting as near-term support","RSI at 54 — neutral zone, not overbought","Volume trending slightly below average — cautious conviction"] },
+      technical:{ score:3.8, summary:"Trading above 200-day MA with slowing momentum. Elliott Wave suggests consolidation before next leg.", bullets:["Price sits above 200-day MA ($198) — long-term uptrend intact","50-day MA ($220) acting as near-term support","RSI at 54 — neutral zone, not overbought","Elliott Wave: Primary Wave 4 — minor consolidation before a potential final Wave 5 push"], elliottWave:"Primary Wave 4", elliottWaveSentiment:"Slightly Bullish", ma50Value:220, ma200Value:198 },
       fundamental:{ score:4.6, summary:"Best-in-class margins with a dominant ecosystem moat.", bullets:["Revenue grew 6% YoY to $391B — steady compounder","Net margins of 26% — among the highest in Big Tech","Services segment growing 13% YoY — expanding recurring revenue","iPhone ecosystem lock-in creates one of the widest moats in business"] },
-      metrics:{ score:4.1, summary:"Premium valuation justified by quality; insider activity neutral.", bullets:["P/E of 31x — above market average but historically justified","Beta 1.2 — slightly more volatile than S&P 500","Free cash flow yield of 3.4% — healthy and growing","Short interest under 1% — minimal bearish pressure"],
-        keyMetrics:{"Market Cap":"$3.4T","P/E Ratio":"31x","P/S Ratio":"8.7x","Beta":"1.2","52W High":"$237","52W Low":"$164","Short Interest":"0.8%","FCF Yield":"3.4%","ROE":"147%","Insider Activity":"Neutral"} },
+      metrics:{ score:4.1, summary:"Premium valuation justified by quality. Strong institutional backing and active buyback program signal management confidence.", bullets:["P/E of 31x — above market average but historically justified","Institutional ownership at 61% — broadly held by major funds","Active $110B share buyback program — strong signal of management confidence","Insider activity: neutral — no significant recent buys or sells"], ownershipSignal:"Bullish", ownershipSummary:"61% institutional ownership + active $110B buyback program = strong confidence signal",
+        keyMetrics:{"Market Cap":"$3.4T","P/E Ratio":"31x","P/S Ratio":"8.7x","Beta":"1.2","52W High":"$237","52W Low":"$164","Short Interest":"0.8%","FCF Yield":"3.4%","ROE":"147%","Inst. Ownership":"61%","Buyback Program":"$110B Active","Insider Activity":"Neutral"} },
       valuation:{ score:3.5, summary:"Fairly valued to slightly rich — upside exists but limited near term.", bullets:["Fair value estimated at $210 using blended P/E + DCF model","Current price of $227 implies ~8% premium to fair value","Bull case ($290) requires Services re-rate higher on AI integration","Bear case ($165) assumes margin compression + China headwinds"],
         fairValue:210, bearCase:165, baseCase:220, bullCase:290, model:"Blended P/E + DCF", upside1Y:27.5, downside1Y:27.5 },
-      sentiment:{ score:4.2, summary:"Retail investors broadly bullish; strong brand loyalty on X.", bullets:["X/Twitter sentiment strongly positive — #AAPL trending favorably","Reddit r/investing shows consistent long-term holding mentality","Analyst consensus: 38 Buy, 8 Hold, 2 Sell","No major negative news cycles — Vision Pro narrative building"] },
-      geopolitical:{ score:3.4, summary:"China risk and tariff headwinds offset by domestic strength.", bullets:["~18% of revenue from China — trade tensions remain a key risk","Tariff risk on Asia-manufactured hardware elevated in 2025","Fed rate environment stabilizing — positive for growth multiples","CNN Fear & Greed Index: 42 (Fear) — contrarian buying signal"] },
+      sentiment:{ score:4.2, summary:"Retail investors broadly bullish; strong brand loyalty on X.", bullets:["X/Twitter sentiment strongly positive — #AAPL trending favorably","Reddit r/investing shows consistent long-term holding mentality","Analyst consensus: 38 Buy, 8 Hold, 2 Sell","No major negative news cycles — Apple Intelligence narrative building"] },
+      geopolitical:{ score:3.4, summary:"China risk and tariff headwinds offset by domestic strength. Futures mixed.", bullets:["~18% of revenue from China — trade tensions remain a key risk","S&P 500 & Nasdaq futures flat-to-slightly-negative — cautious macro backdrop","Fed rate environment stabilizing — positive for growth multiples","CNN Fear & Greed Index: 38 (Fear) — contrarian buying signal for long-term investors"], futuresSummary:"Futures flat-to-negative — mild macro headwind" },
     },
     overallScore:4.02,
     keyRisks:["China revenue exposure + escalating trade tariffs","iPhone upgrade cycle slowdown in saturated markets","Regulatory antitrust pressure on App Store globally"],
     keyCatalysts:["Apple Intelligence AI rollout driving upgrade supercycle","Services segment approaching $100B annual run rate","Potential India manufacturing expansion reducing China dependency"],
-    conclusionSummary:"Apple remains one of the highest-quality businesses on the planet. At current prices it's fairly valued — not screaming cheap — but for long-term holders the compounding power of its ecosystem, Services growth, and capital return program make it a core holding. Patient buyers may find better entry points on broader market pullbacks.",
+    conclusionSummary:"Apple remains one of the highest-quality businesses on the planet. At current prices it's fairly valued — not screaming cheap — but for long-term holders the compounding power of its ecosystem, Services growth, and capital return program make it a core holding. The active $110B buyback and 61% institutional ownership underscore management and smart money conviction. Patient buyers may find better entry points on broader market pullbacks.",
     catalystCalendar:[
-      {date:"2025-03-19",event:"FOMC Rate Decision",type:"macro"},
-      {date:"2025-03-28",event:"Core PCE Inflation Data",type:"macro"},
-      {date:"2025-04-10",event:"CPI Print — March Data",type:"macro"},
-      {date:"2025-05-01",event:"AAPL Q2 2025 Earnings",type:"earnings"},
-      {date:"2025-06-09",event:"Apple WWDC 2025 — AI Announcements",type:"catalyst"},
+      {date:"2026-03-19",event:"FOMC Rate Decision",type:"macro"},
+      {date:"2026-04-10",event:"CPI Print — March 2026 Data",type:"macro"},
+      {date:"2026-04-29",event:"Core PCE Inflation Data",type:"macro"},
+      {date:"2026-05-07",event:"AAPL Q2 FY2026 Earnings",type:"earnings"},
+      {date:"2026-06-08",event:"Apple WWDC 2026 — AI & Software Announcements",type:"catalyst"},
     ],
-    priceHistory: generatePriceHistory(164,237,227.50),
+    priceHistory: generatePriceHistory(164,237,227.50,220,198),
   },
   NVDA: {
     ticker:"NVDA", companyName:"NVIDIA Corporation", sector:"Semiconductors",
-    reportDate:"2025-02-20", currentPrice:138.85, nextEarnings:"2025-05-28",
+    reportDate:"2026-03-05", currentPrice:138.85, nextEarnings:"2026-05-28",
     pillars:{
-      technical:{ score:4.2, summary:"Strong uptrend with healthy consolidation after parabolic run.", bullets:["Price recovered above 50-day MA after January correction","200-day MA at $115 — significant long-term support floor","RSI at 59 — room to run without being overbought","Volume surges on up days — institutional accumulation visible"] },
+      technical:{ score:4.2, summary:"Recovering above key MAs after correction. Elliott Wave analysis points to a high-conviction entry zone.", bullets:["Price recovered above 50-day MA ($131) after February correction","200-day MA at $115 — significant long-term support floor","RSI at 59 — room to run without being overbought","Elliott Wave: Primary Wave 2 — this pullback is the setup before the most powerful Wave 3 leg"], elliottWave:"Primary Wave 2", elliottWaveSentiment:"Very Bullish — Best Entry Before Wave 3", ma50Value:131, ma200Value:115 },
       fundamental:{ score:4.9, summary:"Generational growth story — AI infrastructure backbone.", bullets:["Revenue grew 122% YoY — fastest growing mega-cap in history","Data Center revenue of $35B per quarter — still accelerating","Net margins of 55% — extraordinarily rare at this scale","Blackwell GPU architecture creates 18+ month competitive lead"] },
-      metrics:{ score:4.3, summary:"High multiples justified by the extraordinary growth trajectory.", bullets:["Forward P/E of 28x — reasonable given 3-year growth runway","Beta 1.7 — high volatility, expect large swings — hold conviction","Free cash flow yield 2.1% — reinvesting heavily in capacity","Short interest 1.2% — low bearish positioning"],
-        keyMetrics:{"Market Cap":"$3.4T","P/E (Fwd)":"28x","P/S Ratio":"19x","Beta":"1.7","52W High":"$153","52W Low":"$76","Short Interest":"1.2%","FCF Yield":"2.1%","ROE":"123%","Insider Activity":"Light Selling"} },
+      metrics:{ score:4.3, summary:"Metrics bullish across the board. Institutional conviction is exceptionally high and buybacks signal management confidence even at elevated prices.", bullets:["Forward P/E of 28x — reasonable given 3-year growth runway","Institutional ownership at 67% — near-peak smart money accumulation","Active $25B share buyback — management buying their own stock aggressively","Insider activity: light selling by executives post-vest — normal, not a warning sign"], ownershipSignal:"Bullish", ownershipSummary:"67% institutional ownership + $25B active buyback = extremely high conviction from smart money",
+        keyMetrics:{"Market Cap":"$3.4T","P/E (Fwd)":"28x","P/S Ratio":"19x","Beta":"1.7","52W High":"$153","52W Low":"$76","Short Interest":"1.2%","FCF Yield":"2.1%","ROE":"123%","Inst. Ownership":"67%","Buyback Program":"$25B Active","Insider Activity":"Light Selling (normal)"} },
       valuation:{ score:4.0, summary:"Compelling risk-reward — trades at discount vs growth potential.", bullets:["Fair value $175 on 30x forward earnings FY2026 estimates","At $139 the stock trades at a meaningful discount to intrinsic value","Bull case $280 if hyperscaler capex remains elevated through 2026","Bear case $95 on demand air pocket or competitive disruption"],
         fairValue:175, bearCase:95, baseCase:175, bullCase:280, model:"Forward P/E on FY2026", upside1Y:101.6, downside1Y:31.6 },
       sentiment:{ score:4.5, summary:"Overwhelming retail and institutional enthusiasm — the AI poster child.", bullets:["NVDA dominates X/Twitter AI and investing conversations daily","Reddit WSB and r/investing both heavily long biased","Analyst consensus: 53 Buy, 5 Hold, 0 Sell — near-unanimous","Jensen Huang keynotes treated like Apple events — cultural moment"] },
-      geopolitical:{ score:3.2, summary:"Export restrictions are the #1 risk — priced in but real.", bullets:["US chip export controls limit Blackwell sales to China","China represents ~15% of revenue and falling due to restrictions","CHIPS Act tailwinds support domestic manufacturing buildout","CNN Fear & Greed Index: 42 (Fear) — historically great AI entry signal"] },
+      geopolitical:{ score:3.2, summary:"Export restrictions are the #1 risk — priced in but real. Futures mixed.", bullets:["US chip export controls limit Blackwell sales to China","Nasdaq futures slightly negative today — short-term macro pressure","CHIPS Act tailwinds support domestic manufacturing buildout","CNN Fear & Greed Index: 38 (Fear) — historically great AI entry signal"], futuresSummary:"Nasdaq futures slightly down — minor short-term headwind" },
     },
     overallScore:4.31,
     keyRisks:["US chip export restrictions expanding to more countries","Hyperscalers (Microsoft, Google, Amazon) developing in-house chips","Single-customer concentration risk in Data Center segment"],
-    keyCatalysts:["Blackwell GB200 NVL72 rack systems ramping in H1 2025","Sovereign AI buildout — every country wants its own AI infrastructure","CUDA ecosystem moat deepening — 4M+ developers locked in"],
-    conclusionSummary:"NVIDIA is the defining company of the AI era. The fundamentals are extraordinary and the competitive moat is wider than most appreciate. After the January correction it trades at a discount to fair value with an asymmetric risk-reward skewing heavily to the upside. For long-term thinkers — this is exactly the type of setup Eternal Edge was built to identify.",
+    keyCatalysts:["Blackwell GB200 NVL72 rack systems ramping in H1 2026","Sovereign AI buildout — every country wants its own AI infrastructure","CUDA ecosystem moat deepening — 4M+ developers locked in"],
+    conclusionSummary:"NVIDIA is the defining company of the AI era. The fundamentals are extraordinary and the competitive moat is wider than most appreciate. Elliott Wave analysis places this in a Primary Wave 2 pullback — historically the single best entry point before the most explosive leg up. The 67% institutional ownership and active $25B buyback confirm that smart money sees exactly what we see. This is precisely the type of setup Eternal Edge was built to identify.",
     catalystCalendar:[
-      {date:"2025-03-17",event:"GTC 2025 — Jensen Huang Keynote",type:"catalyst"},
-      {date:"2025-03-19",event:"FOMC Rate Decision",type:"macro"},
-      {date:"2025-04-10",event:"CPI Print — March Data",type:"macro"},
-      {date:"2025-05-28",event:"NVDA Q1 FY2026 Earnings",type:"earnings"},
+      {date:"2026-03-17",event:"GTC 2026 — Jensen Huang Keynote",type:"catalyst"},
+      {date:"2026-03-19",event:"FOMC Rate Decision",type:"macro"},
+      {date:"2026-04-10",event:"CPI Print — March 2026 Data",type:"macro"},
+      {date:"2026-05-28",event:"NVDA Q1 FY2027 Earnings",type:"earnings"},
     ],
-    priceHistory: generatePriceHistory(76,153,138.85),
+    priceHistory: generatePriceHistory(76,153,138.85,131,115),
   },
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────
-async function fetchReport(ticker) {
+async function fetchReport(ticker, reportDate) {
+  const today = reportDate || "2026-03-05";
   const sys = `You are a professional stock analyst for Eternal Edge Research — a faith-driven, long-term value investing platform. Philosophy: buy when others panic, hold with conviction (Warren Buffett style).
 
-Use web search to pull LIVE data:
-- Current price, 52-week range, key financial metrics
-- CNN Fear & Greed Index from https://www.cnn.com/markets/fear-and-greed (use score for geopolitical pillar — Fear=opportunity=higher score, Greed=risk=lower score)
-- X/Twitter & Reddit sentiment for the specific stock
-- Next earnings date and upcoming catalysts (FOMC dates, CPI prints, company events)
+TODAY'S DATE IS: ${today}. All data you pull must be current as of this date. All catalyst calendar events MUST be dated AFTER ${today} — no past events.
+
+Use web search to pull ALL of the following LIVE data as of ${today}:
+1. Current stock price, 52-week high/low, market cap
+2. The ACTUAL 50-day moving average and 200-day moving average values (search "[TICKER] 50 day moving average 200 day moving average current")
+3. CNN Fear & Greed Index (https://www.cnn.com/markets/fear-and-greed)
+4. Stock futures data from https://finance.yahoo.com/markets/commodities/ — look at S&P 500 futures, Nasdaq futures, Dow futures and factor into geopolitical/macro score
+5. X/Twitter & Reddit sentiment for the stock
+6. Institutional ownership % (search "[TICKER] institutional ownership percentage")
+7. Recent insider buys/sells (search "[TICKER] insider buying selling 2026")
+8. Share buyback program — active or not, amount authorized (search "[TICKER] share buyback repurchase program")
+9. Next earnings date (must be after ${today})
+10. Upcoming catalysts: FOMC meetings, CPI prints, company-specific events — all dated after ${today}
+11. Elliott Wave analysis: search "[TICKER] Elliott Wave analysis current wave 2026" and determine which Primary Wave the stock is currently in
+
+ELLIOTT WAVE SCORING GUIDE (factor into technical score):
+- Primary Wave 1: +0.3 (slightly bullish — new uptrend beginning)
+- Primary Wave 2: +0.5 (very bullish — best entry point before Wave 3)
+- Primary Wave 3: +0.5 (most bullish — strongest, fastest leg up)
+- Primary Wave 4: +0.2 (slightly bullish — minor consolidation before final push)
+- Primary Wave 5: -0.1 (slightly bearish — higher risk, nearing end of impulse)
+- Primary Wave A: -0.3 (bearish — correction has begun)
+- Primary Wave B: -0.2 (slightly bearish — relief rally, good exit spot)
+- Primary Wave C: -0.1 to +0.2 (bearish early, can turn bullish at latter stage)
+
+METRICS PILLAR — include these signals with a combined Bullish/Neutral/Bearish summary signal:
+- Institutional Ownership %: >70% is bullish, 40-70% neutral, <40% bearish
+- Insider Activity: Net buying = very bullish, neutral/mixed = neutral, net selling = mildly bearish
+- Share Buybacks: Active buyback program = bullish (signals management confidence), no program = neutral
+
+GEOPOLITICAL/MACRO PILLAR — incorporate:
+- Stock futures direction (S&P, Nasdaq, Dow) — futures up = slight positive, futures down = slight negative
+- CNN Fear & Greed score (Fear <40 = opportunity = higher score; Greed >60 = risk = lower score)
+- Fed rate environment, tariffs, global macro
+
+TECHNICAL PILLAR — must include:
+- Current price vs 50-day MA and 200-day MA (use actual values)
+- RSI reading
+- Elliott Wave position with explanation of what it means for the stock
+- ma50Value and ma200Value as separate fields (numeric, e.g. 185.40)
 
 PILLARS & WEIGHTS: Technical 20%, Fundamental 25%, Metrics 20%, Valuation 20%, Sentiment 10%, Geopolitical/Macro 5%
 SCORING: 1.0–1.9 Strong Sell | 2.0–2.9 Sell | 3.0–3.9 Neutral | 4.0–4.4 Buy | 4.5–5.0 Strong Buy
 
-Each pillar needs:
-- score (decimal 1.0–5.0)
-- summary (one clean plain-English sentence)
-- bullets (4 short digestible bullet points, no jargon)
-- keyMetrics object (metrics pillar ONLY)
-- fairValue, bearCase, baseCase, bullCase, upside1Y (% to bull), downside1Y (% to bear), model (valuation pillar ONLY)
-
-Return ONLY valid JSON, no markdown fences:
-{"ticker":"","companyName":"","sector":"","reportDate":"YYYY-MM-DD","currentPrice":0,"nextEarnings":"YYYY-MM-DD","pillars":{"technical":{"score":0,"summary":"","bullets":[]},"fundamental":{"score":0,"summary":"","bullets":[]},"metrics":{"score":0,"summary":"","bullets":[],"keyMetrics":{}},"valuation":{"score":0,"summary":"","bullets":[],"fairValue":0,"bearCase":0,"baseCase":0,"bullCase":0,"upside1Y":0,"downside1Y":0,"model":""},"sentiment":{"score":0,"summary":"","bullets":[]},"geopolitical":{"score":0,"summary":"","bullets":[]}},"overallScore":0,"keyRisks":[],"keyCatalysts":[],"conclusionSummary":"","catalystCalendar":[{"date":"YYYY-MM-DD","event":"","type":"earnings|macro|catalyst"}],"twitterThread":[]}`;
+Return ONLY valid JSON, no markdown fences, no extra text:
+{"ticker":"","companyName":"","sector":"","reportDate":"${today}","currentPrice":0,"nextEarnings":"YYYY-MM-DD","pillars":{"technical":{"score":0,"summary":"","bullets":[],"elliottWave":"Primary Wave X","elliottWaveSentiment":"","ma50Value":0,"ma200Value":0},"fundamental":{"score":0,"summary":"","bullets":[]},"metrics":{"score":0,"summary":"","bullets":[],"ownershipSignal":"Bullish|Neutral|Bearish","ownershipSummary":"","keyMetrics":{}},"valuation":{"score":0,"summary":"","bullets":[],"fairValue":0,"bearCase":0,"baseCase":0,"bullCase":0,"upside1Y":0,"downside1Y":0,"model":""},"sentiment":{"score":0,"summary":"","bullets":[]},"geopolitical":{"score":0,"summary":"","bullets":[],"futuresSummary":""}},"overallScore":0,"keyRisks":[],"keyCatalysts":[],"conclusionSummary":"","catalystCalendar":[{"date":"YYYY-MM-DD","event":"","type":"earnings|macro|catalyst"}]}`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:4000, system:sys,
-      messages:[{role:"user",content:`Generate full Eternal Edge deep dive for ${ticker.toUpperCase()}. Search live price, metrics, CNN Fear & Greed, X/Twitter sentiment. Return only JSON.`}],
+      model:"claude-sonnet-4-20250514", max_tokens:5000, system:sys,
+      messages:[{role:"user",content:`Generate full Eternal Edge deep dive for ${ticker.toUpperCase()} as of ${today}. Search all required data: live price, actual 50/200-day MA values, CNN Fear & Greed, stock futures from Yahoo Finance, institutional ownership, insider activity, share buybacks, Elliott Wave position, X/Twitter sentiment. All catalyst dates must be after ${today}. Return only JSON.`}],
       tools:[{type:"web_search_20250305",name:"web_search"}]
     })
   });
@@ -167,7 +225,9 @@ Return ONLY valid JSON, no markdown fences:
   const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
   const lo = parsed.pillars.metrics?.keyMetrics?.["52W Low"] ? parseFloat(String(parsed.pillars.metrics.keyMetrics["52W Low"]).replace(/[$,]/g,"")) : parsed.currentPrice*0.7;
   const hi = parsed.pillars.metrics?.keyMetrics?.["52W High"] ? parseFloat(String(parsed.pillars.metrics.keyMetrics["52W High"]).replace(/[$,]/g,"")) : parsed.currentPrice*1.3;
-  parsed.priceHistory = generatePriceHistory(lo, hi, parsed.currentPrice);
+  const ma50 = parsed.pillars.technical?.ma50Value || null;
+  const ma200 = parsed.pillars.technical?.ma200Value || null;
+  parsed.priceHistory = generatePriceHistory(lo, hi, parsed.currentPrice, ma50, ma200);
   return parsed;
 }
 
@@ -461,7 +521,37 @@ html,body,#root{background:var(--bg);color:var(--text);font-family:'Josefin Sans
 .soc-mission-cross::before,.soc-mission-cross::after{content:'—';opacity:0.4;}
 .soc-mission p{font-size:13px;color:#aaa;line-height:1.8;max-width:500px;margin:0 auto;}
 
-/* LOADING */
+/* SUMMARY DASHBOARD */
+.dash-page{max-width:900px;margin:0 auto;padding:40px 36px 80px;}
+.dash-hero{text-align:center;margin-bottom:44px;}
+.dash-hero h1{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:700;margin-bottom:10px;}
+.dash-hero p{font-size:12px;color:var(--muted);line-height:1.8;max-width:480px;margin:0 auto;}
+.dash-section{margin-bottom:40px;}
+.dash-section-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.dash-section-icon{font-size:18px;}
+.dash-section-title{font-family:'Cormorant Garamond',serif;font-size:24px;}
+.dash-section-sub{font-size:10px;color:var(--muted);letter-spacing:0.1em;margin-left:auto;}
+.dash-row{display:flex;align-items:center;gap:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:all 0.18s;margin-bottom:9px;position:relative;overflow:hidden;}
+.dash-row::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;}
+.dash-row.buy::after{background:#4ade80;}
+.dash-row.strongbuy::after{background:#00e5a0;}
+.dash-row.sell::after{background:#fb923c;}
+.dash-row.strongsell::after{background:#f87171;}
+.dash-row:hover{border-color:var(--border2);transform:translateX(2px);}
+.dash-rank{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--dim);width:32px;flex-shrink:0;text-align:center;}
+.dash-ticker{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;width:72px;flex-shrink:0;}
+.dash-co{flex:1;}
+.dash-co-name{font-size:12px;font-weight:600;margin-bottom:2px;}
+.dash-co-sector{font-size:10px;color:var(--muted);}
+.dash-bar-wrap{width:100px;height:3px;background:var(--bg4);border-radius:2px;flex-shrink:0;}
+.dash-bar-fill{height:100%;border-radius:2px;}
+.dash-score{text-align:right;flex-shrink:0;}
+.dash-score-num{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;}
+.dash-score-lbl{font-size:8px;letter-spacing:0.15em;margin-top:2px;}
+.dash-arrow{font-size:12px;color:var(--dim);flex-shrink:0;}
+.dash-report-date{font-size:9px;color:var(--dim);letter-spacing:0.08em;}
+
+/* loading */
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px;}
 .spinner{width:32px;height:32px;border:2px solid var(--bg4);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -557,12 +647,19 @@ function RRVisual({ current, bear, base, bull, upside, downside }) {
 function PillarCard({ pillar, data }) {
   const [open, setOpen] = useState(false);
   const color = SC(data.score);
+  const ownershipColor = data.ownershipSignal==="Bullish"?"#4ade80":data.ownershipSignal==="Bearish"?"#f87171":"#f5c842";
   return (
     <div className="pc">
       <div className="pc-hdr" onClick={()=>setOpen(o=>!o)}>
         <span className="pc-icon">{pillar.icon}</span>
         <span className="pc-name">{pillar.label}</span>
         <span className="pc-wt">{Math.round(pillar.weight*100)}%</span>
+        {pillar.id==="technical" && data.elliottWave && (
+          <span style={{fontSize:9,background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",color:"var(--gold)",padding:"2px 8px",borderRadius:20,letterSpacing:"0.06em",flexShrink:0}}>{data.elliottWave}</span>
+        )}
+        {pillar.id==="metrics" && data.ownershipSignal && (
+          <span style={{fontSize:9,background:`${ownershipColor}14`,border:`1px solid ${ownershipColor}33`,color:ownershipColor,padding:"2px 8px",borderRadius:20,letterSpacing:"0.06em",flexShrink:0}}>{data.ownershipSignal}</span>
+        )}
         <div className="pc-bar-wrap"><div className="pc-bar" style={{width:`${(data.score/5)*100}%`,background:color}}/></div>
         <span className="pc-score" style={{color}}>{data.score.toFixed(1)}</span>
         <span className={`pc-chev ${open?"open":""}`}>▼</span>
@@ -570,6 +667,25 @@ function PillarCard({ pillar, data }) {
       {open && (
         <div className="pc-body">
           <div className="pc-summary">{data.summary}</div>
+          {pillar.id==="technical" && data.elliottWave && (
+            <div style={{background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.18)",borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+              <div style={{fontSize:9,letterSpacing:"0.16em",color:"var(--gold)",marginBottom:5}}>ELLIOTT WAVE ANALYSIS</div>
+              <div style={{fontSize:12,color:"#c9a84c",fontWeight:600,marginBottom:4}}>{data.elliottWave} — {data.elliottWaveSentiment}</div>
+              {data.elliottWaveNote && <div style={{fontSize:11,color:"#999",lineHeight:1.6}}>{data.elliottWaveNote}</div>}
+            </div>
+          )}
+          {pillar.id==="metrics" && data.ownershipSummary && (
+            <div style={{background:`${ownershipColor}08`,border:`1px solid ${ownershipColor}22`,borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+              <div style={{fontSize:9,letterSpacing:"0.16em",color:ownershipColor,marginBottom:4}}>INSTITUTIONAL SIGNAL — {data.ownershipSignal?.toUpperCase()}</div>
+              <div style={{fontSize:12,color:"#bbb",lineHeight:1.6}}>{data.ownershipSummary}</div>
+            </div>
+          )}
+          {pillar.id==="geopolitical" && data.futuresSummary && (
+            <div style={{background:"rgba(96,165,250,0.06)",border:"1px solid rgba(96,165,250,0.18)",borderRadius:8,padding:"10px 14px",marginBottom:12}}>
+              <div style={{fontSize:9,letterSpacing:"0.16em",color:"#60a5fa",marginBottom:4}}>STOCK FUTURES</div>
+              <div style={{fontSize:12,color:"#bbb",lineHeight:1.6}}>{data.futuresSummary}</div>
+            </div>
+          )}
           <div className="pc-bullets">
             {data.bullets?.map((b,i)=>(<div className="pc-bullet" key={i}><div className="bul-dot"/><span>{b}</span></div>))}
           </div>
@@ -893,6 +1009,74 @@ function SocialPage() {
   );
 }
 
+// ── SUMMARY DASHBOARD ────────────────────────────────────────────────────────
+function SummaryDashboard({ reports, onSelect }) {
+  const sorted = Object.values(reports).sort((a,b)=>b.overallScore-a.overallScore);
+  const top5 = sorted.slice(0,5);
+  const bot5 = sorted.slice(-5).reverse();
+  const ratingClass = s => s>=4.5?"strongbuy":s>=4.0?"buy":s>=2.0?"sell":"strongsell";
+
+  const DashRow = ({r, rank}) => {
+    const rt = RATING(r.overallScore);
+    return (
+      <div className={`dash-row ${ratingClass(r.overallScore)}`} onClick={()=>onSelect(r.ticker)}>
+        <div className="dash-rank">#{rank}</div>
+        <div className="dash-ticker" style={{color:rt.color}}>${r.ticker}</div>
+        <div className="dash-co">
+          <div className="dash-co-name">{r.companyName}</div>
+          <div className="dash-co-sector">{r.sector} · Published {r.reportDate}</div>
+        </div>
+        <div className="dash-bar-wrap"><div className="dash-bar-fill" style={{width:`${(r.overallScore/5)*100}%`,background:rt.color}}/></div>
+        <div className="dash-score">
+          <div className="dash-score-num" style={{color:rt.color}}>{r.overallScore.toFixed(2)}</div>
+          <div className="dash-score-lbl" style={{color:rt.color}}>{rt.label}</div>
+        </div>
+        <div className="dash-arrow">→</div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="dash-page">
+      <div className="dash-hero">
+        <div style={{fontSize:10,letterSpacing:"0.3em",color:"var(--gold)",opacity:0.6,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <span style={{opacity:0.4}}>—</span> ✝ HIGHEST CONVICTION IDEAS <span style={{opacity:0.4}}>—</span>
+        </div>
+        <h1>Summary Dashboard</h1>
+        <p>Our top-rated opportunities and highest-risk stocks at a glance. Auto-ranked by overall score across all published reports.</p>
+      </div>
+
+      <div style={{background:"rgba(201,168,76,0.05)",border:"1px solid rgba(201,168,76,0.15)",borderRadius:12,padding:"12px 18px",marginBottom:32,fontSize:11,color:"var(--muted)",lineHeight:1.7}}>
+        <strong style={{color:"var(--gold)"}}>How to use this:</strong> The Top 5 are our highest-conviction long-term buying opportunities based on our 6-pillar framework. The Bottom 5 are stocks showing the most warning signs — use these as sell or avoid signals. Click any row to read the full report. Not financial advice.
+      </div>
+
+      <div className="dash-section">
+        <div className="dash-section-hdr">
+          <span className="dash-section-icon">🟢</span>
+          <span className="dash-section-title">Top 5 — Highest Conviction Buys</span>
+          <span className="dash-section-sub">SORTED BY OVERALL SCORE ↓</span>
+        </div>
+        {top5.length===0 && <div style={{color:"var(--muted)",fontSize:12,padding:"20px 0"}}>No reports published yet.</div>}
+        {top5.map((r,i)=><DashRow key={r.ticker} r={r} rank={i+1}/>)}
+      </div>
+
+      <div className="dash-section">
+        <div className="dash-section-hdr">
+          <span className="dash-section-icon">🔴</span>
+          <span className="dash-section-title">Bottom 5 — Highest Risk / Sell Signals</span>
+          <span className="dash-section-sub">SORTED BY OVERALL SCORE ↑</span>
+        </div>
+        {bot5.length===0 && <div style={{color:"var(--muted)",fontSize:12,padding:"20px 0"}}>No reports published yet.</div>}
+        {bot5.map((r,i)=><DashRow key={r.ticker} r={r} rank={i+1}/>)}
+      </div>
+
+      <div style={{textAlign:"center",fontSize:10,color:"var(--dim)",lineHeight:1.8,borderTop:"1px solid var(--border)",paddingTop:20}}>
+        Rankings auto-update as new reports are published. All scores reflect our 6-pillar weighted framework. Past scores do not guarantee future performance.
+      </div>
+    </div>
+  );
+}
+
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
 function HomePage({ reports, onSelect, onSearch }) {
   const [q, setQ] = useState("");
@@ -963,7 +1147,7 @@ export default function App() {
     if (reports[t]) { goReport(t); return; }
     setSelected(t); setPage("loading"); setError(null);
     try {
-      const data = await fetchReport(t);
+      const data = await fetchReport(t, "2026-03-05");
       setReports(prev=>({...prev,[t]:data}));
       setPage("report");
     } catch(e) {
@@ -979,6 +1163,7 @@ export default function App() {
 
   const NAVLINKS = [
     {id:"home",label:"REPORTS"},
+    {id:"dashboard",label:"SUMMARY DASHBOARD"},
     {id:"grading",label:"GRADING SCALE"},
     {id:"watchlist",label:"MY WATCHLIST"},
     {id:"social",label:"FOLLOW US"},
@@ -1014,11 +1199,12 @@ export default function App() {
         </div>
       </nav>
 
-      {page==="home"    && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
-      {page==="report"  && selected && reports[selected] && <ReportPage report={reports[selected]} onBack={()=>setPage("home")}/>}
-      {page==="grading" && <GradingScalePage/>}
+      {page==="home"      && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
+      {page==="dashboard" && <SummaryDashboard reports={reports} onSelect={goReport}/>}
+      {page==="report"    && selected && reports[selected] && <ReportPage report={reports[selected]} onBack={()=>setPage("home")}/>}
+      {page==="grading"   && <GradingScalePage/>}
       {page==="watchlist" && <WatchlistPage reports={reports}/>}
-      {page==="social"  && <SocialPage/>}
+      {page==="social"    && <SocialPage/>}
       {page==="loading" && (
         <div className="loading-screen">
           <div className="loading-ticker">${selected}</div>
