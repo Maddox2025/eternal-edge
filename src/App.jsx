@@ -109,7 +109,7 @@ function generatePriceHistory(low, high, current, realMa50=null, realMa200=null)
 // ── GOOGLE SHEETS DATA SOURCE ─────────────────────────────────────────────────
 // Sheet URL stored as env variable — never exposed in public code
 const SHEET_ID = "1lqs75vw2o9oBo8x_0ojWvvE483aU-Zi6zhu6sEXnkxk";
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Reports`;
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Reports`;
 
 function parseSheetRow(row) {
   try {
@@ -158,14 +158,63 @@ function parseSheetRow(row) {
 async function fetchSheetReports() {
   const res = await fetch(SHEET_URL);
   const text = await res.text();
-  // Google wraps response in /*O_o*/google.visualization.Query.setResponse({...})
-  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-  const rows = json.table.rows.slice(1); // skip header row
+  console.log("Sheet CSV response length:", text.length);
+  console.log("First 200 chars:", text.slice(0,200));
+
+  // Parse CSV — handle quoted fields with commas inside
+  const parseCSVLine = line => {
+    const result = [];
+    let cur = "", inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuote && line[i+1] === '"') { cur += '"'; i++; }
+        else inQuote = !inQuote;
+      } else if (ch === ',' && !inQuote) {
+        result.push(cur); cur = "";
+      } else cur += ch;
+    }
+    result.push(cur);
+    return result;
+  };
+
+  const lines = text.trim().split("\n");
+  console.log("CSV lines:", lines.length);
   const reports = {};
-  rows.forEach(row => {
-    const r = parseSheetRow(row);
-    if (r && r.ticker) reports[r.ticker] = r;
-  });
+  // Skip row 0 (headers), parse from row 1
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    console.log("Row", i, "col0:", cols[0]);
+    if (!cols[0] || cols[0].trim() === "") continue;
+    const s = idx => (cols[idx] || "").trim();
+    const n = idx => parseFloat(cols[idx]) || 0;
+    const arr = idx => { try { return JSON.parse(s(idx) || "[]"); } catch { return s(idx).split("|").map(x=>x.trim()).filter(Boolean); }};
+    const ticker = s(0).toUpperCase().replace(/"/g,"");
+    const lo = n(37) || n(4)*0.7;
+    const hi = n(38) || n(4)*1.3;
+    const ma50 = n(39) || null;
+    const ma200 = n(40) || null;
+    const report = {
+      ticker,
+      companyName: s(1), sector: s(2), reportDate: s(3),
+      currentPrice: n(4), nextEarnings: s(5), overallScore: n(6),
+      pillars: {
+        technical: { score:n(7), summary:s(8), bullets:arr(9), elliottWave:s(10), elliottWaveSentiment:s(11), ma50Value:ma50, ma200Value:ma200 },
+        fundamental: { score:n(12), summary:s(13), bullets:arr(14) },
+        metrics: { score:n(15), summary:s(16), bullets:arr(17), ownershipSignal:s(18), ownershipSummary:s(19),
+          keyMetrics: (() => { try { return JSON.parse(s(20)||"{}"); } catch { return {}; }})() },
+        valuation: { score:n(21), summary:s(22), bullets:arr(23), fairValue:n(24), bearCase:n(25), baseCase:n(26), bullCase:n(27), upside1Y:n(28), downside1Y:n(29), model:s(30) },
+        sentiment: { score:n(31), summary:s(32), bullets:arr(33) },
+        geopolitical: { score:n(34), summary:s(35), bullets:arr(36), futuresSummary:s(41) },
+      },
+      keyRisks: arr(42), keyCatalysts: arr(43),
+      conclusionSummary: s(44),
+      catalystCalendar: (() => { try { return JSON.parse(s(45)||"[]"); } catch { return []; }})(),
+      priceHistory: generatePriceHistory(lo, hi, n(4), ma50, ma200),
+    };
+    reports[ticker] = report;
+  }
+  console.log("Reports loaded:", Object.keys(reports));
   return reports;
 }
 
