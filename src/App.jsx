@@ -626,9 +626,60 @@ html,body,#root{background:var(--bg);color:var(--text);font-family:'Josefin Sans
 `;
 
 // ── CHART ─────────────────────────────────────────────────────────────────────
-function PriceChart({ data, ticker }) {
-  const lo = Math.min(...data.map(d=>d.price))*0.97;
-  const hi = Math.max(...data.map(d=>d.price))*1.02;
+function PriceChart({ ticker }) {
+  const [chartData, setChartData] = useState(null);
+  const [chartError, setChartError] = useState(false);
+
+  useEffect(() => {
+    const now = Math.floor(Date.now()/1000);
+    const twoYearsAgo = now - 730*24*60*60;
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&period1=${twoYearsAgo}&period2=${now}`;
+    const proxies = [
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+    const tryProxy = async (idx) => {
+      if (idx >= proxies.length) { setChartError(true); return; }
+      try {
+        const res = await fetch(proxies[idx](yahooUrl));
+        if (!res.ok) throw new Error("bad");
+        const json = await res.json();
+        const result = json?.chart?.result?.[0];
+        if (!result) throw new Error("no result");
+        const timestamps = result.timestamp;
+        const closes = result.indicators.quote[0].close;
+        const raw = timestamps.map((t,i) => ({
+          date: new Date(t*1000).toISOString().split("T")[0],
+          price: closes[i] ? parseFloat(closes[i].toFixed(2)) : null
+        })).filter(d => d.price !== null);
+        // Compute MAs on full 2-year dataset
+        raw.forEach((d,i) => {
+          if (i>=49)  d.ma50  = parseFloat((raw.slice(i-49,i+1).reduce((s,x)=>s+x.price,0)/50).toFixed(2));
+          if (i>=199) d.ma200 = parseFloat((raw.slice(i-199,i+1).reduce((s,x)=>s+x.price,0)/200).toFixed(2));
+        });
+        // Show only last 252 days (1 year) on chart
+        setChartData(raw.slice(-252));
+      } catch(e) {
+        console.warn("Proxy " + idx + " failed:", e.message);
+        tryProxy(idx + 1);
+      }
+    };
+    tryProxy(0);
+  }, [ticker]);
+
+  if (chartError) return (
+    <div className="chart-card" style={{display:"flex",alignItems:"center",justifyContent:"center",height:120,color:"var(--dim)",fontSize:11}}>
+      Chart data unavailable
+    </div>
+  );
+  if (!chartData) return (
+    <div className="chart-card" style={{display:"flex",alignItems:"center",justifyContent:"center",height:120}}>
+      <div className="spinner" style={{width:20,height:20,borderWidth:2}}/>
+    </div>
+  );
+
+  const lo = Math.min(...chartData.map(d=>d.price))*0.97;
+  const hi = Math.max(...chartData.map(d=>d.price))*1.02;
   return (
     <div className="chart-card">
       <div className="chart-hdr">
@@ -640,7 +691,7 @@ function PriceChart({ data, ticker }) {
         </div>
       </div>
       <ResponsiveContainer width="100%" height={210}>
-        <AreaChart data={data} margin={{top:4,right:2,bottom:0,left:0}}>
+        <AreaChart data={chartData} margin={{top:4,right:2,bottom:0,left:0}}>
           <defs>
             <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#c9a84c" stopOpacity={0.1}/>
@@ -654,7 +705,7 @@ function PriceChart({ data, ticker }) {
             tickFormatter={v=>`$${v.toFixed(0)}`} width={42}/>
           <Tooltip contentStyle={{background:"#111",border:"1px solid #2a2a2a",borderRadius:8,fontFamily:"Josefin Sans",fontSize:10}}
             labelStyle={{color:"#555"}} itemStyle={{color:"#f0ead6"}}
-            formatter={(v,n)=>[`$${v}`,n==="price"?"Price":n==="ma50"?"50D MA":"200D MA"]}/>
+            formatter={(v,n)=>[`$${v.toFixed(2)}`,n==="price"?"Price":n==="ma50"?"50D MA":"200D MA"]}/>
           <Area type="monotone" dataKey="price" stroke="#c9a84c" strokeWidth={1.5} fill="url(#pg)" dot={false}/>
           <Line type="monotone" dataKey="ma50"  stroke="#60a5fa" strokeWidth={1.5} dot={false} strokeDasharray="5 3"/>
           <Line type="monotone" dataKey="ma200" stroke="#f97316" strokeWidth={1.5} dot={false} strokeDasharray="5 3"/>
@@ -813,7 +864,7 @@ function ReportPage({ report, onBack }) {
         </div>
       </div>
 
-      {report.priceHistory && <PriceChart data={report.priceHistory} ticker={report.ticker}/>}
+      {report.ticker && <PriceChart ticker={report.ticker}/>}
 
       <div style={{marginBottom:22}}>
         {PILLARS.map(p=>(<PillarCard key={p.id} pillar={p} data={report.pillars[p.id]}/>))}
