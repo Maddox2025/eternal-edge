@@ -928,7 +928,7 @@ function ReportPage({ report, onBack }) {
 
 function HistoryPage({ reports }) {
   const [search, setSearch] = React.useState('');
-  const [sortKey, setSortKey] = React.useState('score');
+  const [sortKey, setSortKey] = React.useState('overallScore');
   const [sortDir, setSortDir] = React.useState('desc');
   const [ratingFilter, setRatingFilter] = React.useState('all');
 
