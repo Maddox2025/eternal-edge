@@ -623,7 +623,35 @@ html,body,#root{background:var(--bg);color:var(--text);font-family:'Josefin Sans
 .loading-msg{font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;}
 .loading-sub{font-size:10px;color:var(--dim);letter-spacing:0.08em;}
 .error-msg{background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.2);border-radius:12px;padding:24px;color:#f87171;margin:32px auto;max-width:480px;text-align:center;font-size:12px;line-height:1.8;}
-`;
+
+/* ── REPORT HISTORY ───────────────────────────────────── */
+.hist-page{max-width:1100px;margin:0 auto;padding:60px 24px 80px;}
+.hist-hero{text-align:center;margin-bottom:48px;}
+.hist-hero h1{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--gold);margin:0 0 10px;}
+.hist-hero p{color:var(--muted);font-size:13px;letter-spacing:0.08em;max-width:560px;margin:0 auto;}
+.hist-controls{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;align-items:center;}
+.hist-search{flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Josefin Sans',sans-serif;font-size:12px;letter-spacing:0.08em;outline:none;transition:border-color 0.2s;}
+.hist-search:focus{border-color:var(--gold);}
+.hist-search::placeholder{color:var(--muted);}
+.hist-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--muted);font-family:'Josefin Sans',sans-serif;font-size:11px;letter-spacing:0.08em;outline:none;cursor:pointer;transition:border-color 0.2s;}
+.hist-select:focus{border-color:var(--gold);}
+.hist-count{font-size:11px;color:var(--muted);letter-spacing:0.1em;margin-left:auto;white-space:nowrap;}
+.hist-table{width:100%;border-collapse:collapse;}
+.hist-table th{font-family:'Josefin Sans',sans-serif;font-size:10px;letter-spacing:0.18em;color:var(--muted);text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--border);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;}
+.hist-table th:hover{color:var(--gold);}
+.hist-table th.sorted{color:var(--gold);}
+.hist-table td{padding:15px 16px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;vertical-align:middle;}
+.hist-table tr{transition:background 0.15s;}
+.hist-table tr:hover td{background:rgba(201,168,76,0.04);}
+.hist-ticker{font-family:'Josefin Sans',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.1em;color:var(--gold);}
+.hist-company{font-size:12px;color:var(--muted);letter-spacing:0.04em;margin-top:2px;}
+.hist-date{font-family:'Josefin Sans',sans-serif;font-size:12px;color:var(--muted);letter-spacing:0.06em;}
+.hist-price{font-family:'Josefin Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text);}
+.hist-score-wrap{display:flex;align-items:center;gap:10px;}
+.hist-score-num{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;}
+.hist-badge{font-family:'Josefin Sans',sans-serif;font-size:9px;letter-spacing:0.14em;padding:3px 8px;border-radius:4px;font-weight:600;}
+.hist-empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;letter-spacing:0.06em;}
+.hist-disclaimer{margin-top:48px;padding:20px 24px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7;letter-spacing:0.04em;}`;
 
 // ── CHART ─────────────────────────────────────────────────────────────────────
 function PriceChart({ ticker }) {
@@ -897,7 +925,138 @@ function ReportPage({ report, onBack }) {
   );
 }
 
-// ── GRADING SCALE PAGE ────────────────────────────────────────────────────────
+
+function HistoryPage({ reports }) {
+  const [search, setSearch] = React.useState('');
+  const [sortKey, setSortKey] = React.useState('score');
+  const [sortDir, setSortDir] = React.useState('desc');
+  const [ratingFilter, setRatingFilter] = React.useState('all');
+
+  const getLabel = (score) => {
+    if (score >= 4.1) return { label: 'STRONG BUY', color: '#22c55e' };
+    if (score >= 3.1) return { label: 'BUY', color: '#86efac' };
+    if (score >= 2.1) return { label: 'NEUTRAL', color: '#facc15' };
+    if (score >= 1.1) return { label: 'SELL', color: '#f97316' };
+    return { label: 'STRONG SELL', color: '#ef4444' };
+  };
+
+  const rows = Object.values(reports).map(r => ({
+    ticker: r.ticker,
+    companyName: r.companyName,
+    reportDate: r.reportDate,
+    currentPrice: r.currentPrice,
+    overallScore: r.overallScore,
+    sector: r.sector || '',
+  }));
+
+  const filtered = rows.filter(r => {
+    const q = search.toUpperCase();
+    const matchSearch = !q || r.ticker.includes(q) || r.companyName.toUpperCase().includes(q);
+    const { label } = getLabel(r.overallScore);
+    const matchRating = ratingFilter === 'all' || label === ratingFilter;
+    return matchSearch && matchRating;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (sortKey === 'reportDate') { av = av || ''; bv = bv || ''; }
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir(key === 'score' || key === 'overallScore' ? 'desc' : 'asc'); }
+  };
+
+  const arrow = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' ↕';
+
+  const formatDate = (d) => {
+    if (!d) return '—';
+    const parts = d.split('-');
+    if (parts.length !== 3) return d;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(parts[1])-1]} ${parseInt(parts[2])}, ${parts[0]}`;
+  };
+
+  return (
+    <div className="hist-page">
+      <div className="hist-hero">
+        <div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:'10px',letterSpacing:'0.22em',color:'var(--gold)',marginBottom:'12px',opacity:0.7}}>— TRANSPARENCY &amp; ACCOUNTABILITY —</div>
+        <h1>Report History</h1>
+        <p>Every report we have ever published — wins and losses both. Published date, published price, and our score at the time. No cherry-picking. No revisionism. Just the record.</p>
+      </div>
+
+      <div className="hist-controls">
+        <input
+          className="hist-search"
+          placeholder="Search ticker or company..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select className="hist-select" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)}>
+          <option value="all">All Ratings</option>
+          <option value="STRONG BUY">Strong Buy</option>
+          <option value="BUY">Buy</option>
+          <option value="NEUTRAL">Neutral</option>
+          <option value="SELL">Sell</option>
+          <option value="STRONG SELL">Strong Sell</option>
+        </select>
+        <select className="hist-select" value={sortKey} onChange={e => { setSortKey(e.target.value); setSortDir(e.target.value === 'overallScore' ? 'desc' : e.target.value === 'reportDate' ? 'desc' : 'asc'); }}>
+          <option value="overallScore">Sort: Score</option>
+          <option value="reportDate">Sort: Date</option>
+          <option value="ticker">Sort: Ticker</option>
+          <option value="currentPrice">Sort: Price</option>
+        </select>
+        <span className="hist-count">{sorted.length} report{sorted.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div className="hist-empty">No reports match your filters.</div>
+      ) : (
+        <table className="hist-table">
+          <thead>
+            <tr>
+              <th className={sortKey==='ticker'?'sorted':''} onClick={()=>handleSort('ticker')}>Stock{arrow('ticker')}</th>
+              <th className={sortKey==='reportDate'?'sorted':''} onClick={()=>handleSort('reportDate')}>Published{arrow('reportDate')}</th>
+              <th className={sortKey==='currentPrice'?'sorted':''} onClick={()=>handleSort('currentPrice')}>Published Price{arrow('currentPrice')}</th>
+              <th className={sortKey==='overallScore'?'sorted':''} onClick={()=>handleSort('overallScore')}>EE Score{arrow('overallScore')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => {
+              const { label, color } = getLabel(r.overallScore);
+              return (
+                <tr key={i}>
+                  <td>
+                    <div className="hist-ticker">{r.ticker}</div>
+                    <div className="hist-company">{r.companyName}</div>
+                  </td>
+                  <td><span className="hist-date">{formatDate(r.reportDate)}</span></td>
+                  <td><span className="hist-price">${Number(r.currentPrice).toFixed(2)}</span></td>
+                  <td>
+                    <div className="hist-score-wrap">
+                      <span className="hist-score-num" style={{color}}>{Number(r.overallScore).toFixed(2)}</span>
+                      <span className="hist-badge" style={{background:`${color}18`,color,border:`1px solid ${color}40`}}>{label}</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <div className="hist-disclaimer">
+        ⚠️ <strong>Disclaimer:</strong> All scores and published prices reflect our analysis at the time of publication and are not updated retroactively. Past ratings are not indicative of future performance. This is not financial advice. Eternal Edge publishes research for educational and informational purposes only. Always do your own research before making investment decisions.
+      </div>
+    </div>
+  );
+}
+
 function GradingScalePage() {
   const [open, setOpen] = useState(null);
   const SCALE = [
@@ -1292,6 +1451,7 @@ export default function App() {
   const NAVLINKS = [
     {id:"home",label:"REPORTS"},
     {id:"dashboard",label:"SUMMARY DASHBOARD"},
+    {id:"history",label:"REPORT HISTORY"},
     {id:"grading",label:"GRADING SCALE"},
     {id:"watchlist",label:"MY WATCHLIST"},
     {id:"social",label:"FOLLOW US"},
@@ -1341,6 +1501,7 @@ export default function App() {
       {page==="home"      && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
       {page==="dashboard" && <SummaryDashboard reports={reports} onSelect={goReport}/>}
       {page==="report"    && selected && reports[selected] && <ReportPage report={reports[selected]} onBack={()=>setPage("home")}/>}
+      {page==="history"   && <HistoryPage reports={reports}/>}
       {page==="grading"   && <GradingScalePage/>}
       {page==="watchlist" && <WatchlistPage reports={reports}/>}
       {page==="social"    && <SocialPage/>}
