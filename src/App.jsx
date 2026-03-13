@@ -927,10 +927,10 @@ function ReportPage({ report, onBack }) {
 
 
 function HistoryPage({ reports }) {
-  const [search, setSearch] = React.useState('');
-  const [sortKey, setSortKey] = React.useState('overallScore');
-  const [sortDir, setSortDir] = React.useState('desc');
-  const [ratingFilter, setRatingFilter] = React.useState('all');
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('overallScore');
+  const [sortDir, setSortDir] = useState('desc');
+  const [ratingFilter, setRatingFilter] = useState('all');
 
   const getLabel = (s) => {
     const n = parseFloat(s) || 0;
@@ -941,15 +941,13 @@ function HistoryPage({ reports }) {
     return         { label:'STRONG SELL', color:'#ef4444' };
   };
 
-  const allRows = React.useMemo(() =>
-    Object.values(reports || {}).map(r => ({
-      ticker:       String(r.ticker       || ''),
-      companyName:  String(r.companyName  || ''),
-      reportDate:   String(r.reportDate   || ''),
-      currentPrice: parseFloat(r.currentPrice) || 0,
-      overallScore: parseFloat(r.overallScore) || 0,
-    }))
-  , [reports]);
+  const allRows = Object.values(reports || {}).map(r => ({
+    ticker:       String(r.ticker       || ''),
+    companyName:  String(r.companyName  || ''),
+    reportDate:   String(r.reportDate   || ''),
+    currentPrice: parseFloat(r.currentPrice) || 0,
+    overallScore: parseFloat(r.overallScore) || 0,
+  }));
 
   const filtered = allRows.filter(r => {
     const q = search.trim().toUpperCase();
