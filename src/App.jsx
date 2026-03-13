@@ -933,33 +933,33 @@ function HistoryPage({ reports }) {
   const [ratingFilter, setRatingFilter] = React.useState('all');
 
   const getLabel = (score) => {
-    if (score >= 4.1) return { label: 'STRONG BUY', color: '#22c55e' };
-    if (score >= 3.1) return { label: 'BUY', color: '#86efac' };
-    if (score >= 2.1) return { label: 'NEUTRAL', color: '#facc15' };
-    if (score >= 1.1) return { label: 'SELL', color: '#f97316' };
+    const s = parseFloat(score) || 0;
+    if (s >= 4.1) return { label: 'STRONG BUY', color: '#22c55e' };
+    if (s >= 3.1) return { label: 'BUY', color: '#86efac' };
+    if (s >= 2.1) return { label: 'NEUTRAL', color: '#facc15' };
+    if (s >= 1.1) return { label: 'SELL', color: '#f97316' };
     return { label: 'STRONG SELL', color: '#ef4444' };
   };
 
-  const rows = Object.values(reports).map(r => ({
-    ticker: r.ticker,
-    companyName: r.companyName,
-    reportDate: r.reportDate,
-    currentPrice: r.currentPrice,
-    overallScore: r.overallScore,
-    sector: r.sector || '',
+  const allRows = Object.values(reports || {}).map(r => ({
+    ticker: r.ticker || '',
+    companyName: r.companyName || '',
+    reportDate: r.reportDate || '',
+    currentPrice: parseFloat(r.currentPrice) || 0,
+    overallScore: parseFloat(r.overallScore) || 0,
   }));
 
-  const filtered = rows.filter(r => {
-    const q = search.toUpperCase();
-    const matchSearch = !q || r.ticker.includes(q) || r.companyName.toUpperCase().includes(q);
+  const filtered = allRows.filter(r => {
+    const q = search.toUpperCase().trim();
+    const matchSearch = !q || r.ticker.toUpperCase().includes(q) || r.companyName.toUpperCase().includes(q);
     const { label } = getLabel(r.overallScore);
     const matchRating = ratingFilter === 'all' || label === ratingFilter;
     return matchSearch && matchRating;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    let av = a[sortKey], bv = b[sortKey];
-    if (sortKey === 'reportDate') { av = av || ''; bv = bv || ''; }
+    let av = a[sortKey] ?? '';
+    let bv = b[sortKey] ?? '';
     if (typeof av === 'string') av = av.toLowerCase();
     if (typeof bv === 'string') bv = bv.toLowerCase();
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
@@ -969,17 +969,18 @@ function HistoryPage({ reports }) {
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir(key === 'score' || key === 'overallScore' ? 'desc' : 'asc'); }
+    else { setSortKey(key); setSortDir(key === 'overallScore' || key === 'currentPrice' ? 'desc' : 'asc'); }
   };
 
   const arrow = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' ↕';
 
   const formatDate = (d) => {
     if (!d) return '—';
-    const parts = d.split('-');
+    const parts = String(d).split('-');
     if (parts.length !== 3) return d;
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${months[parseInt(parts[1])-1]} ${parseInt(parts[2])}, ${parts[0]}`;
+    const m = parseInt(parts[1], 10) - 1;
+    return `${months[m] || '?'} ${parseInt(parts[2], 10)}, ${parts[0]}`;
   };
 
   return (
@@ -1005,7 +1006,7 @@ function HistoryPage({ reports }) {
           <option value="SELL">Sell</option>
           <option value="STRONG SELL">Strong Sell</option>
         </select>
-        <select className="hist-select" value={sortKey} onChange={e => { setSortKey(e.target.value); setSortDir(e.target.value === 'overallScore' ? 'desc' : e.target.value === 'reportDate' ? 'desc' : 'asc'); }}>
+        <select className="hist-select" value={sortKey} onChange={e => { setSortKey(e.target.value); setSortDir(e.target.value === 'overallScore' || e.target.value === 'currentPrice' ? 'desc' : 'asc'); }}>
           <option value="overallScore">Sort: Score</option>
           <option value="reportDate">Sort: Date</option>
           <option value="ticker">Sort: Ticker</option>
@@ -1014,7 +1015,9 @@ function HistoryPage({ reports }) {
         <span className="hist-count">{sorted.length} report{sorted.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {sorted.length === 0 ? (
+      {allRows.length === 0 ? (
+        <div className="hist-empty">Loading reports...</div>
+      ) : sorted.length === 0 ? (
         <div className="hist-empty">No reports match your filters.</div>
       ) : (
         <table className="hist-table">
@@ -1036,10 +1039,10 @@ function HistoryPage({ reports }) {
                     <div className="hist-company">{r.companyName}</div>
                   </td>
                   <td><span className="hist-date">{formatDate(r.reportDate)}</span></td>
-                  <td><span className="hist-price">${Number(r.currentPrice).toFixed(2)}</span></td>
+                  <td><span className="hist-price">${r.currentPrice.toFixed(2)}</span></td>
                   <td>
                     <div className="hist-score-wrap">
-                      <span className="hist-score-num" style={{color}}>{Number(r.overallScore).toFixed(2)}</span>
+                      <span className="hist-score-num" style={{color}}>{r.overallScore.toFixed(2)}</span>
                       <span className="hist-badge" style={{background:`${color}18`,color,border:`1px solid ${color}40`}}>{label}</span>
                     </div>
                   </td>
