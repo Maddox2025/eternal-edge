@@ -926,20 +926,6 @@ function ReportPage({ report, onBack }) {
 }
 
 
-class HistoryErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(e) { return { error: String(e) }; }
-  render() {
-    if (this.state.error) return (
-      <div style={{padding:60,textAlign:'center',color:'#f97316',fontFamily:'monospace',fontSize:13}}>
-        <div style={{marginBottom:12}}>⚠ History page error:</div>
-        <div style={{color:'#aaa'}}>{this.state.error}</div>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
 function HistoryPage({ reports }) {
   const [search, setSearch] = React.useState('');
   const [sortKey, setSortKey] = React.useState('overallScore');
@@ -956,24 +942,24 @@ function HistoryPage({ reports }) {
   };
 
   const allRows = Object.values(reports || {}).map(r => ({
-    ticker: String(r.ticker || ''),
-    companyName: String(r.companyName || ''),
-    reportDate: String(r.reportDate || ''),
+    ticker: r.ticker || '',
+    companyName: r.companyName || '',
+    reportDate: r.reportDate || '',
     currentPrice: parseFloat(r.currentPrice) || 0,
     overallScore: parseFloat(r.overallScore) || 0,
   }));
 
   const filtered = allRows.filter(r => {
     const q = search.toUpperCase().trim();
-    const matchSearch = !q || r.ticker.includes(q) || r.companyName.toUpperCase().includes(q);
+    const matchSearch = !q || r.ticker.toUpperCase().includes(q) || r.companyName.toUpperCase().includes(q);
     const { label } = getLabel(r.overallScore);
     const matchRating = ratingFilter === 'all' || label === ratingFilter;
     return matchSearch && matchRating;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    let av = a[sortKey] !== undefined ? a[sortKey] : '';
-    let bv = b[sortKey] !== undefined ? b[sortKey] : '';
+    let av = a[sortKey] ?? '';
+    let bv = b[sortKey] ?? '';
     if (typeof av === 'string') av = av.toLowerCase();
     if (typeof bv === 'string') bv = bv.toLowerCase();
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
@@ -981,12 +967,12 @@ function HistoryPage({ reports }) {
     return 0;
   });
 
-  const arrow = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' ↕';
-
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir(key === 'overallScore' || key === 'currentPrice' ? 'desc' : 'asc'); }
   };
+
+  const arrow = (key) => sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' ↕';
 
   const formatDate = (d) => {
     if (!d) return '—';
@@ -994,8 +980,7 @@ function HistoryPage({ reports }) {
     if (parts.length !== 3) return d;
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const m = parseInt(parts[1], 10) - 1;
-    if (m < 0 || m > 11) return d;
-    return `${months[m]} ${parseInt(parts[2], 10)}, ${parts[0]}`;
+    return `${months[m] || '?'} ${parseInt(parts[2], 10)}, ${parts[0]}`;
   };
 
   return (
@@ -1007,7 +992,12 @@ function HistoryPage({ reports }) {
       </div>
 
       <div className="hist-controls">
-        <input className="hist-search" placeholder="Search ticker or company..." value={search} onChange={e => setSearch(e.target.value)}/>
+        <input
+          className="hist-search"
+          placeholder="Search ticker or company..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
         <select className="hist-select" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)}>
           <option value="all">All Ratings</option>
           <option value="STRONG BUY">Strong Buy</option>
@@ -1514,7 +1504,7 @@ export default function App() {
       {page==="home"      && <HomePage reports={reports} onSelect={goReport} onSearch={handleSearch}/>}
       {page==="dashboard" && <SummaryDashboard reports={reports} onSelect={goReport}/>}
       {page==="report"    && selected && reports[selected] && <ReportPage report={reports[selected]} onBack={()=>setPage("home")}/>}
-      {page==="history"   && <HistoryErrorBoundary><HistoryPage reports={reports}/></HistoryErrorBoundary>}
+      {page==="history"   && <HistoryPage reports={reports}/>}
       {page==="grading"   && <GradingScalePage/>}
       {page==="watchlist" && <WatchlistPage reports={reports}/>}
       {page==="social"    && <SocialPage/>}
