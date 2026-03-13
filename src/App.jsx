@@ -927,11 +927,130 @@ function ReportPage({ report, onBack }) {
 
 
 function HistoryPage({ reports }) {
-  const count = Object.keys(reports || {}).length;
+  const [search, setSearch] = React.useState('');
+  const [sortKey, setSortKey] = React.useState('overallScore');
+  const [sortDir, setSortDir] = React.useState('desc');
+  const [ratingFilter, setRatingFilter] = React.useState('all');
+
+  const getLabel = (s) => {
+    const n = parseFloat(s) || 0;
+    if (n >= 4.1) return { label:'STRONG BUY',  color:'#22c55e' };
+    if (n >= 3.1) return { label:'BUY',          color:'#86efac' };
+    if (n >= 2.1) return { label:'NEUTRAL',      color:'#facc15' };
+    if (n >= 1.1) return { label:'SELL',         color:'#f97316' };
+    return         { label:'STRONG SELL', color:'#ef4444' };
+  };
+
+  const allRows = React.useMemo(() =>
+    Object.values(reports || {}).map(r => ({
+      ticker:       String(r.ticker       || ''),
+      companyName:  String(r.companyName  || ''),
+      reportDate:   String(r.reportDate   || ''),
+      currentPrice: parseFloat(r.currentPrice) || 0,
+      overallScore: parseFloat(r.overallScore) || 0,
+    }))
+  , [reports]);
+
+  const filtered = allRows.filter(r => {
+    const q = search.trim().toUpperCase();
+    const matchSearch = !q || r.ticker.includes(q) || r.companyName.toUpperCase().includes(q);
+    const matchRating = ratingFilter === 'all' || getLabel(r.overallScore).label === ratingFilter;
+    return matchSearch && matchRating;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let av = a[sortKey] !== undefined ? a[sortKey] : '';
+    let bv = b[sortKey] !== undefined ? b[sortKey] : '';
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = String(bv).toLowerCase(); }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+
+  const arrow = k => sortKey === k ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ' ↕';
+
+  const handleSort = k => {
+    if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(k); setSortDir(k === 'overallScore' || k === 'currentPrice' ? 'desc' : 'asc'); }
+  };
+
+  const fmtDate = d => {
+    const parts = String(d || '').split('-');
+    if (parts.length !== 3) return d || '—';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = parseInt(parts[1], 10) - 1;
+    if (m < 0 || m > 11) return d;
+    return months[m] + ' ' + parseInt(parts[2], 10) + ', ' + parts[0];
+  };
+
   return (
-    <div style={{padding:'60px',textAlign:'center',color:'var(--text)'}}>
-      <h1 style={{color:'var(--gold)',marginBottom:'20px'}}>Report History</h1>
-      <p>Reports loaded: {count}</p>
+    <div className="hist-page">
+      <div className="hist-hero">
+        <div style={{fontFamily:"'Josefin Sans',sans-serif",fontSize:'10px',letterSpacing:'0.22em',color:'var(--gold)',marginBottom:'12px',opacity:0.7}}>— TRANSPARENCY &amp; ACCOUNTABILITY —</div>
+        <h1>Report History</h1>
+        <p>Every report we have ever published — wins and losses both. Published date, published price, and our score at the time. No cherry-picking. No revisionism. Just the record.</p>
+      </div>
+
+      <div className="hist-controls">
+        <input className="hist-search" placeholder="Search ticker or company..." value={search} onChange={e => setSearch(e.target.value)}/>
+        <select className="hist-select" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)}>
+          <option value="all">All Ratings</option>
+          <option value="STRONG BUY">Strong Buy</option>
+          <option value="BUY">Buy</option>
+          <option value="NEUTRAL">Neutral</option>
+          <option value="SELL">Sell</option>
+          <option value="STRONG SELL">Strong Sell</option>
+        </select>
+        <select className="hist-select" value={sortKey} onChange={e => { setSortKey(e.target.value); setSortDir(e.target.value === 'overallScore' || e.target.value === 'currentPrice' ? 'desc' : 'asc'); }}>
+          <option value="overallScore">Sort: Score</option>
+          <option value="reportDate">Sort: Date</option>
+          <option value="ticker">Sort: Ticker</option>
+          <option value="currentPrice">Sort: Price</option>
+        </select>
+        <span className="hist-count">{sorted.length} report{sorted.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {allRows.length === 0 ? (
+        <div className="hist-empty">Loading reports...</div>
+      ) : sorted.length === 0 ? (
+        <div className="hist-empty">No reports match your filters.</div>
+      ) : (
+        <table className="hist-table">
+          <thead>
+            <tr>
+              <th className={sortKey==='ticker'?'sorted':''} onClick={()=>handleSort('ticker')}>Stock{arrow('ticker')}</th>
+              <th className={sortKey==='reportDate'?'sorted':''} onClick={()=>handleSort('reportDate')}>Published{arrow('reportDate')}</th>
+              <th className={sortKey==='currentPrice'?'sorted':''} onClick={()=>handleSort('currentPrice')}>Price{arrow('currentPrice')}</th>
+              <th className={sortKey==='overallScore'?'sorted':''} onClick={()=>handleSort('overallScore')}>EE Score{arrow('overallScore')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => {
+              const { label, color } = getLabel(r.overallScore);
+              return (
+                <tr key={i}>
+                  <td>
+                    <div className="hist-ticker">{r.ticker}</div>
+                    <div className="hist-company">{r.companyName}</div>
+                  </td>
+                  <td><span className="hist-date">{fmtDate(r.reportDate)}</span></td>
+                  <td><span className="hist-price">${r.currentPrice.toFixed(2)}</span></td>
+                  <td>
+                    <div className="hist-score-wrap">
+                      <span className="hist-score-num" style={{color}}>{r.overallScore.toFixed(2)}</span>
+                      <span className="hist-badge" style={{background:color+'18',color,border:'1px solid '+color+'40'}}>{label}</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <div className="hist-disclaimer">
+        ⚠️ <strong>Disclaimer:</strong> All scores and published prices reflect our analysis at the time of publication and are not updated retroactively. Past ratings are not indicative of future performance. This is not financial advice. Eternal Edge publishes research for educational and informational purposes only. Always do your own research before making investment decisions.
+      </div>
     </div>
   );
 }
